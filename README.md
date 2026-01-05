@@ -1,0 +1,2 @@
+# LRT_forward_trajectory_controller
+Simplified joint_trajectory_controller for trajectory interpolation 
