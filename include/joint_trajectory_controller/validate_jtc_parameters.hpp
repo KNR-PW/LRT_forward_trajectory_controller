@@ -38,17 +38,17 @@ tl::expected<void, std::string> command_interface_type_combinations(
   if (
     rsl::contains<std::vector<std::string>>(interface_types, "velocity") &&!(
 	interface_types.size() == 1 ||
-    !rsl::contains<std::vector<std::string>>(interface_types, "position")))
+    rsl::contains<std::vector<std::string>>(interface_types, "position")))
   {
     return tl::make_unexpected(
       "'velocity' command interface can be used only if 'position' "
-      "command interface has to be present");
+      "command interface is present");
   }
 
   if (
     rsl::contains<std::vector<std::string>>(interface_types, "effort") &&!(
     interface_types.size() == 1 ||
-	!rsl::contains<std::vector<std::string>>(interface_types,"position")))
+	rsl::contains<std::vector<std::string>>(interface_types,"position")))
   {
     return tl::make_unexpected("'effort' command interface can be used only if 'position' command interface is present");
   }
@@ -59,33 +59,6 @@ tl::expected<void, std::string> command_interface_type_combinations(
 tl::expected<void, std::string> state_interface_type_combinations(
   rclcpp::Parameter const & parameter)
 {
-  auto const & interface_types = parameter.as_string_array();
-
-
-  const bool has_position =
-    rsl::contains<std::vector<std::string>>(interface_types, "position");
-  const bool has_velocity =
-    rsl::contains<std::vector<std::string>>(interface_types, "velocity");
-  const bool has_effort =
-    rsl::contains<std::vector<std::string>>(interface_types, "effort");
-  const bool has_acceleration =
-    rsl::contains<std::vector<std::string>>(interface_types, "acceleration");
-  if (has_acceleration)
-  {
-    return tl::make_unexpected(
-      "'acceleration' state interface is not allowed. Required: [position, velocity, effort].");
-  }
-
-  if (!has_position || !has_velocity || !has_effort)
-  {
-    return tl::make_unexpected(
-      "State interfaces must contain exactly: [position, velocity, effort].");
-  }
-  if (interface_types.size() != 3)
-  {
-    return tl::make_unexpected(
-      "Invalid number of state interfaces. Required exactly 3: [position, velocity, effort].");
-  }
   return {};
 }
 

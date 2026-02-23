@@ -273,7 +273,6 @@ public:
 TEST_F(TrajectoryInterpolationTest, two_point_trajectory)
 {
   command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "TWO_POINT_SPLINE";
   interpolation_method_ = "splines";
 
@@ -327,7 +326,6 @@ TEST_F(TrajectoryInterpolationTest, two_point_trajectory)
 TEST_F(TrajectoryInterpolationTest, three_point_with_velocities)
 {
   command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "THREE_POINT_WITH_VEL";
   interpolation_method_ = "splines";
 
@@ -382,7 +380,6 @@ TEST_F(TrajectoryInterpolationTest, three_point_with_velocities)
 TEST_F(TrajectoryInterpolationTest, trajectory_with_efforts)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "WITH_SPECIFIED_EFFORTS";
   interpolation_method_ = "splines";
 
@@ -449,7 +446,6 @@ TEST_F(TrajectoryInterpolationTest, trajectory_with_efforts)
 TEST_F(TrajectoryInterpolationTest, multi_segment_full_spec)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "MULTI_SEGMENT_FULL";
   interpolation_method_ = "splines";
 
@@ -518,7 +514,6 @@ TEST_F(TrajectoryInterpolationTest, multi_segment_full_spec)
 TEST_F(TrajectoryInterpolationTest, linear_interpolation)
 {
   command_interface_types_ = {"position"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "LINEAR_INTERPOLATION";
   interpolation_method_ = "linear";
 
@@ -564,7 +559,6 @@ TEST_F(TrajectoryInterpolationTest, linear_interpolation)
 TEST_F(TrajectoryInterpolationTest, s_curve_motion)
 {
   command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "S_CURVE_MOTION";
   interpolation_method_ = "splines";
 
@@ -619,7 +613,6 @@ TEST_F(TrajectoryInterpolationTest, s_curve_motion)
 TEST_F(TrajectoryInterpolationTest, return_motion_with_effort)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "RETURN_MOTION_EFFORT";
   interpolation_method_ = "splines";
 
@@ -683,7 +676,6 @@ TEST_F(TrajectoryInterpolationTest, return_motion_with_effort)
 TEST_F(TrajectoryInterpolationTest, position_effort_command_only)
 {
   command_interface_types_ = {"position", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "POS_EFFORT_COMMAND_ONLY";
   interpolation_method_ = "splines";
 
@@ -748,7 +740,6 @@ TEST_F(TrajectoryInterpolationTest, position_effort_command_only)
 TEST_F(TrajectoryInterpolationTest, input_pos_effort_no_vel_msg)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "INPUT_POS_EFF_NO_VEL";
   interpolation_method_ = "splines"; // Powinno spaść do liniowej
 

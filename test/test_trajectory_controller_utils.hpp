@@ -130,10 +130,6 @@ public:
     params_.command_interfaces = command_interfaces;
   }
 
-  void set_state_interfaces(const std::vector<std::string> & state_interfaces)
-  {
-    params_.state_interfaces = state_interfaces;
-  }
 
   void trigger_declare_parameters() { param_listener_->declare_params(); }
 
@@ -141,11 +137,6 @@ public:
   {
     return last_commanded_state_;
   }
-  bool has_position_state_interface() const { return has_position_state_interface_; }
-
-  bool has_velocity_state_interface() const { return has_velocity_state_interface_; }
-
-  bool has_effort_state_interface() const { return has_effort_state_interface_; }
 
   bool has_position_command_interface() const { return has_position_command_interface_; }
 
@@ -210,7 +201,6 @@ public:
     joint_eff_.resize(joint_names_.size(), 0.0);
     // Default interface values - they will be overwritten by parameterized tests
     command_interface_types_ = {"position"};
-    state_interface_types_ = {"position", "velocity","effort"};
 
     node_ = std::make_shared<rclcpp::Node>("trajectory_publisher_");
     trajectory_publisher_ = node_->create_publisher<trajectory_msgs::msg::JointTrajectory>(
@@ -244,7 +234,6 @@ public:
     parameter_overrides.push_back(rclcpp::Parameter("joints", joint_names_));
     parameter_overrides.push_back(
       rclcpp::Parameter("command_interfaces", command_interface_types_));
-    parameter_overrides.push_back(rclcpp::Parameter("state_interfaces", state_interface_types_));
     parameter_overrides.insert(parameter_overrides.end(), parameters.begin(), parameters.end());
     node_options.parameter_overrides(parameter_overrides);
 
@@ -314,9 +303,6 @@ public:
     pos_cmd_interfaces_.reserve(joint_names_.size());
     vel_cmd_interfaces_.reserve(joint_names_.size());
     eff_cmd_interfaces_.reserve(joint_names_.size());
-    pos_state_interfaces_.reserve(joint_names_.size());
-    vel_state_interfaces_.reserve(joint_names_.size());
-    eff_state_interfaces_.reserve(joint_names_.size());
     for (size_t i = 0; i < joint_names_.size(); ++i)
     {
       pos_cmd_interfaces_.emplace_back(
@@ -329,18 +315,6 @@ public:
         hardware_interface::CommandInterface(
           joint_names_[i], hardware_interface::HW_IF_EFFORT, &joint_eff_[i]));
 
-      pos_state_interfaces_.emplace_back(
-        hardware_interface::StateInterface(
-          joint_names_[i], hardware_interface::HW_IF_POSITION,
-          separate_cmd_and_state_values ? &joint_state_pos_[i] : &joint_pos_[i]));
-      vel_state_interfaces_.emplace_back(
-        hardware_interface::StateInterface(
-          joint_names_[i], hardware_interface::HW_IF_VELOCITY,
-          separate_cmd_and_state_values ? &joint_state_vel_[i] : &joint_vel_[i]));
-      eff_state_interfaces_.emplace_back(
-        hardware_interface::StateInterface(
-          joint_names_[i], hardware_interface::HW_IF_EFFORT,
-          separate_cmd_and_state_values ? &joint_state_eff_[i] : &joint_eff_[i]));
 
       // Add to export lists and set initial values
       cmd_interfaces.emplace_back(pos_cmd_interfaces_.back());
@@ -355,9 +329,6 @@ public:
         joint_state_vel_[i] = INITIAL_VEL_JOINTS[i];
         joint_state_eff_[i] = INITIAL_EFF_JOINTS[i];
       }
-      state_interfaces.emplace_back(pos_state_interfaces_.back());
-      state_interfaces.emplace_back(vel_state_interfaces_.back());
-      state_interfaces.emplace_back(eff_state_interfaces_.back());
     }
 
     traj_controller_->assign_interfaces(std::move(cmd_interfaces), std::move(state_interfaces));
@@ -650,26 +621,6 @@ public:
     {
       // velocity or effort PID?
       // --> set kp > 0.0 in test
-      if (traj_controller_->has_velocity_command_interface())
-      {
-        for (size_t i = 0; i < 3; i++)
-        {
-          EXPECT_TRUE(is_same_sign_or_zero(
-            position.at(i) - pos_state_interfaces_[i].get_value(), joint_vel_[i]))
-            << "test position point " << position.at(i) << ", position state is "
-            << pos_state_interfaces_[i].get_value() << ", velocity command is " << joint_vel_[i];
-        }
-      }
-      if (traj_controller_->has_effort_command_interface())
-      {
-        for (size_t i = 0; i < 3; i++)
-        {
-          EXPECT_TRUE(is_same_sign_or_zero(
-            position.at(i) - pos_state_interfaces_[i].get_value(), joint_eff_[i]))
-            << "test position point " << position.at(i) << ", position state is "
-            << pos_state_interfaces_[i].get_value() << ", effort command is " << joint_eff_[i];
-        }
-      }
     }
   }
 
@@ -713,21 +664,6 @@ public:
   void compare_joints(
     std::vector<std::string> state_joint_names, std::vector<std::string> command_joint_names)
   {
-    std::vector<std::string> state_interface_names;
-    state_interface_names.reserve(state_joint_names.size() * state_interface_types_.size());
-    for (const auto & joint : state_joint_names)
-    {
-      for (const auto & interface : state_interface_types_)
-      {
-        state_interface_names.push_back(joint + "/" + interface);
-      }
-    }
-    auto state_interfaces = traj_controller_->state_interface_configuration();
-    EXPECT_EQ(
-      state_interfaces.type, controller_interface::interface_configuration_type::INDIVIDUAL);
-    EXPECT_EQ(
-      state_interfaces.names.size(), state_joint_names.size() * state_interface_types_.size());
-    ASSERT_THAT(state_interfaces.names, testing::UnorderedElementsAreArray(state_interface_names));
 
     std::vector<std::string> command_interface_names;
     command_interface_names.reserve(command_joint_names.size() * command_interface_types_.size());
@@ -753,7 +689,6 @@ public:
   std::vector<std::string> joint_names_;
   std::vector<std::string> command_joint_names_;
   std::vector<std::string> command_interface_types_;
-  std::vector<std::string> state_interface_types_;
 
   rclcpp::Node::SharedPtr node_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr trajectory_publisher_;
@@ -777,9 +712,6 @@ public:
   std::vector<hardware_interface::CommandInterface> pos_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> vel_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> eff_cmd_interfaces_;
-  std::vector<hardware_interface::StateInterface> pos_state_interfaces_;
-  std::vector<hardware_interface::StateInterface> vel_state_interfaces_;
-  std::vector<hardware_interface::StateInterface> eff_state_interfaces_;
 };
 
 // From the tutorial: https://www.sandordargo.com/blog/2019/04/24/parameterized-testing-with-gtest
@@ -793,7 +725,6 @@ public:
   {
     TrajectoryControllerTest::SetUp();
     command_interface_types_ = std::get<0>(GetParam());
-    state_interface_types_ = std::get<1>(GetParam());
   }
 
   virtual void TearDown() { TrajectoryControllerTest::TearDown(); }

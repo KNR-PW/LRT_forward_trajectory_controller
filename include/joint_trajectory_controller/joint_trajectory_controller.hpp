@@ -128,11 +128,7 @@ protected:
   using InterfaceReferences = std::vector<std::vector<std::reference_wrapper<T>>>;
 
   InterfaceReferences<hardware_interface::LoanedCommandInterface> joint_command_interface_;
-  InterfaceReferences<hardware_interface::LoanedStateInterface> joint_state_interface_;
 
-  bool has_position_state_interface_ = false;
-  bool has_velocity_state_interface_ = false;
-  bool has_effort_state_interface_ = false;
   bool has_position_command_interface_ = false;
   bool has_velocity_command_interface_ = false;
   bool has_effort_command_interface_ = false;
@@ -246,14 +242,7 @@ protected:
     const JointTrajectoryPoint & desired_state, const JointTrajectoryPoint & current_state,
     const JointTrajectoryPoint & state_error);
 
-  void read_state_from_state_interfaces(JointTrajectoryPoint & state);
 
-  /** Assign values from the command interfaces as state.
-   * This is only possible if command AND state interfaces exist for the same type,
-   *  therefore needs check for both.
-   * @param[out] state to be filled with values from command interfaces.
-   * @return true if all interfaces exists and contain non-NaN values, false otherwise.
-   */
   bool read_state_from_command_interfaces(JointTrajectoryPoint & state);
   bool read_commands_from_command_interfaces(JointTrajectoryPoint & commands);
 
@@ -267,8 +256,6 @@ private:
     const std::vector<std::string> & interface_type_list, const std::string & interface_type);
 
   void init_hold_position_msg();
-  void resize_joint_trajectory_point(
-    trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size);
   void resize_joint_trajectory_point_command(
     trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size);
 };
