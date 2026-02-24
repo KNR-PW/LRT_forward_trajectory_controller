@@ -76,10 +76,6 @@ const double stopped_velocity_tolerance = 0.1;
   // EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(2).acceleration, 0.0);
 }
 
-bool is_same_sign_or_zero(double val1, double val2)
-{
-  return val1 * val2 > 0.0 || (val1 == 0.0 && val2 == 0.0);
-}
 }  // namespace
 
 namespace test_trajectory_controllers
@@ -146,9 +142,7 @@ public:
   //
   bool has_effort_command_interface() const { return has_effort_command_interface_; }
 
-  // bool use_closed_loop_pid_adapter() const { return use_closed_loop_pid_adapter_; }
 
-  bool is_open_loop() const { return params_.open_loop_control; }
 
   joint_trajectory_controller::SegmentTolerances get_active_tolerances()
   {
@@ -262,8 +256,7 @@ public:
 
   void SetUpAndActivateTrajectoryController(
     rclcpp::Executor & executor, const std::vector<rclcpp::Parameter> & parameters = {},
-    bool separate_cmd_and_state_values = false, double k_p = 0.0, double ff = 1.0,
-    bool angle_wraparound = false,
+    bool separate_cmd_and_state_values = false,
     const std::vector<double> initial_pos_joints = INITIAL_POS_JOINTS,
     const std::vector<double> initial_vel_joints = INITIAL_VEL_JOINTS,
     const std::vector<double> initial_eff_joints = INITIAL_EFF_JOINTS)
@@ -581,7 +574,7 @@ public:
   void test_state_publish_rate_target(int target_msg_count);
 
   void expectCommandPoint(
-    std::vector<double> position, std::vector<double> velocity = {0.0, 0.0, 0.0})
+   )
   {
     // it should be holding the given point
     // i.e., active but trivial trajectory (one point only)
@@ -662,7 +655,7 @@ public:
    * @brief compares the joint names and interface types of the controller with the given ones
    */
   void compare_joints(
-    std::vector<std::string> state_joint_names, std::vector<std::string> command_joint_names)
+     std::vector<std::string> command_joint_names)
   {
 
     std::vector<std::string> command_interface_names;

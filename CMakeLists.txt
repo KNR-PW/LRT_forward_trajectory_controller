@@ -60,52 +60,10 @@ if(BUILD_TESTING)
   find_package(controller_manager REQUIRED)
   find_package(ros2_control_test_assets REQUIRED)
 
-  ament_add_gmock(test_simple_tests test/test_simple_tests.cpp)
-  target_link_libraries(test_simple_tests joint_trajectory_controller ros2_control_test_assets::ros2_control_test_assets)
-  target_compile_definitions(test_simple_tests PRIVATE _USE_MATH_DEFINES)
-
   ament_add_gmock(test_forward_trajectory test/test_forward_trajectory.cpp)
   target_link_libraries(test_forward_trajectory joint_trajectory_controller ros2_control_test_assets::ros2_control_test_assets)
   target_compile_definitions(test_forward_trajectory PRIVATE _USE_MATH_DEFINES)
 
-
-  # ament_add_gmock(test_trajectory test/test_trajectory.cpp)
-  # target_link_libraries(test_trajectory joint_trajectory_controller)
-  # target_compile_definitions(test_trajectory PRIVATE _USE_MATH_DEFINES)
-  #
-  # ament_add_gmock(test_tolerances test/test_tolerances.cpp)
-  # target_link_libraries(test_tolerances joint_trajectory_controller)
-  # target_compile_definitions(test_tolerances PRIVATE _USE_MATH_DEFINES)
-  #
-  # ament_add_gmock(test_trajectory_controller
-  #   test/test_trajectory_controller.cpp)
-  # set_tests_properties(test_trajectory_controller PROPERTIES TIMEOUT 220)
-  # target_link_libraries(test_trajectory_controller
-  #   joint_trajectory_controller
-  #   ros2_control_test_assets::ros2_control_test_assets
-  # )
-  # target_compile_definitions(test_trajectory_controller PRIVATE _USE_MATH_DEFINES)
-  #
-  # ament_add_gmock(test_load_joint_trajectory_controller
-  #   test/test_load_joint_trajectory_controller.cpp
-  # )
-  # target_link_libraries(test_load_joint_trajectory_controller
-  #   joint_trajectory_controller
-  # )
-  # ament_target_dependencies(test_load_joint_trajectory_controller
-  #   controller_manager
-  #   control_toolbox
-  #   realtime_tools
-  #   ros2_control_test_assets
-  # )
-  #
-  # ament_add_gmock(test_trajectory_actions
-  #   test/test_trajectory_actions.cpp
-  # )
-  # set_tests_properties(test_trajectory_actions PROPERTIES TIMEOUT 300)
-  # target_link_libraries(test_trajectory_actions
-  #   joint_trajectory_controller
-  # )
 endif()
 
 

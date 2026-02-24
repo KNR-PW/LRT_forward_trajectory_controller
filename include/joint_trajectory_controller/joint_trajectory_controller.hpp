@@ -133,9 +133,6 @@ protected:
   bool has_velocity_command_interface_ = false;
   bool has_effort_command_interface_ = false;
 
-  // Configuration for every joint if it wraps around (ie. is continuous, position error is
-  // normalized)
-  std::vector<bool> joints_angle_wraparound_;
 
   // Timeout to consider commands old
   double cmd_timeout_;
@@ -153,17 +150,6 @@ protected:
     traj_msg_external_point_ptr_;
 
   std::shared_ptr<trajectory_msgs::msg::JointTrajectory> hold_position_msg_ptr_ = nullptr;
-
-  using ControllerStateMsg = control_msgs::msg::JointTrajectoryControllerState;
-  using StatePublisher = realtime_tools::RealtimePublisher<ControllerStateMsg>;
-  using StatePublisherPtr = std::unique_ptr<StatePublisher>;
-  rclcpp::Publisher<ControllerStateMsg>::SharedPtr publisher_legacy_;
-  StatePublisherPtr state_publisher_legacy_;
-  rclcpp::Publisher<ControllerStateMsg>::SharedPtr publisher_;
-  StatePublisherPtr state_publisher_;
-
-  rclcpp::Duration state_publisher_period_ = rclcpp::Duration(20ms);
-  rclcpp::Time last_state_publish_time_;
 
   using FollowJTrajAction = control_msgs::action::FollowJointTrajectory;
   using RealtimeGoalHandle = realtime_tools::RealtimeServerGoalHandle<FollowJTrajAction>;
@@ -237,11 +223,6 @@ protected:
   bool has_active_trajectory() const;
 
   using JointTrajectoryPoint = trajectory_msgs::msg::JointTrajectoryPoint;
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
-  void publish_state(
-    const JointTrajectoryPoint & desired_state, const JointTrajectoryPoint & current_state,
-    const JointTrajectoryPoint & state_error);
-
 
   bool read_state_from_command_interfaces(JointTrajectoryPoint & state);
   bool read_commands_from_command_interfaces(JointTrajectoryPoint & commands);

@@ -56,11 +56,6 @@ tl::expected<void, std::string> command_interface_type_combinations(
   return {};
 }
 
-tl::expected<void, std::string> state_interface_type_combinations(
-  rclcpp::Parameter const & parameter)
-{
-  return {};
-}
 
 }  // namespace joint_trajectory_controller
 

@@ -8,9 +8,10 @@ Creates plots similar to ROS2 control documentation showing:
 - Effort vs Time with specified effort waypoints
 
 Usage:
-    python3 visualize_trajectory_log. py [log_file]
-    python3 visualize_trajectory_log.py log.txt --style doc --joint 0
-    python3 visualize_trajectory_log.py log.txt --style all --save output
+    python3 trajectoryVisualizer.py [log_file]
+    python3 trajectoryVisualizer.py log.txt --style doc --joint 0
+    python3 trajectoryVisualizer.py log.txt --style all --save output
+    python3 trajectoryVisualizer.py --save ../../../log/latest_test/joint_trajectory_controller/stdout.log
 """
 
 import sys

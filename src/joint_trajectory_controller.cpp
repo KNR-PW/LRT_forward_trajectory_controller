@@ -170,9 +170,7 @@ controller_interface::return_type JointTrajectoryController::update(
     }
   };
 
-  // current state update
-  state_current_.time_from_start.sec = 0;
-  state_current_.time_from_start.nanosec = 0;
+  state_current_ = last_commanded_state_;
 
   // currently carrying out a trajectory
   if (has_active_trajectory())
@@ -182,16 +180,8 @@ controller_interface::return_type JointTrajectoryController::update(
     if (!traj_external_point_ptr_->is_sampled_already())
     {
       first_sample = true;
-      if (params_.open_loop_control)
-      {
-        traj_external_point_ptr_->set_point_before_trajectory_msg(
-          time, last_commanded_state_); //joints_angle_wraparound_); //usunalem joints_angle_wraparound_
-      }
-      else
-      {
-        traj_external_point_ptr_->set_point_before_trajectory_msg(
-          time, state_current_); //joints_angle_wraparound_); //usunalem joints_angle_wraparound_
-      }
+	  traj_external_point_ptr_->set_point_before_trajectory_msg(
+          time, last_commanded_state_);
     }
 
     // find segment for current timestamp
@@ -379,7 +369,6 @@ controller_interface::return_type JointTrajectoryController::update(
     }
   }
 
-  publish_state(state_desired_, state_current_, state_error_);
   return controller_interface::return_type::OK;
 }
 
@@ -611,23 +600,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_EFFORT);
 
 
-  // Configure joint position error normalization from ROS parameters (angle_wraparound)
-  joints_angle_wraparound_.resize(dof_);
-  for (size_t i = 0; i < dof_; ++i)
-  {
-    const auto & gains = params_.gains.joints_map.at(params_.joints[i]);
-    if (gains.normalize_error)
-    {
-      // TODO(anyone): Remove deprecation warning in the end of 2023
-      RCLCPP_INFO(logger, "`normalize_error` is deprecated, use `angle_wraparound` instead!");
-      joints_angle_wraparound_[i] = gains.normalize_error;
-    }
-    else
-    {
-      joints_angle_wraparound_[i] = gains.angle_wraparound;
-    }
-  }
-
 
   // Validation of combinations of state and velocity together have to be done
   // here because the parameter validators only deal with each parameter
@@ -687,62 +659,11 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   // prepare hold_position_msg
   init_hold_position_msg();
 
-  // create subscriber and publishers
+  // create subscriber
   joint_command_subscriber_ =
     get_node()->create_subscription<trajectory_msgs::msg::JointTrajectory>(
       "~/joint_trajectory", rclcpp::SystemDefaultsQoS(),
       std::bind(&JointTrajectoryController::topic_callback, this, std::placeholders::_1));
-
-  // State publisher
-  RCLCPP_INFO(logger, "Controller state will be published at %.2f Hz.", params_.state_publish_rate);
-  if (params_.state_publish_rate > 0.0)
-  {
-    state_publisher_period_ = rclcpp::Duration::from_seconds(1.0 / params_.state_publish_rate);
-  }
-  else
-  {
-    state_publisher_period_ = rclcpp::Duration::from_seconds(0.0);
-  }
-
-  publisher_legacy_ =
-    get_node()->create_publisher<ControllerStateMsg>("~/state", rclcpp::SystemDefaultsQoS());
-  state_publisher_legacy_ = std::make_unique<StatePublisher>(publisher_legacy_);
-
-  state_publisher_legacy_->lock();
-  state_publisher_legacy_->msg_.joint_names = params_.joints;
-  state_publisher_legacy_->msg_.desired.positions.resize(dof_);
-  state_publisher_legacy_->msg_.desired.velocities.resize(dof_);
-  state_publisher_legacy_->msg_.desired.effort.resize(dof_);
-  state_publisher_legacy_->msg_.actual.positions.resize(dof_);
-  state_publisher_legacy_->msg_.error.positions.resize(dof_);
-  state_publisher_legacy_->unlock();
-
-  publisher_ = get_node()->create_publisher<ControllerStateMsg>(
-    "~/controller_state", rclcpp::SystemDefaultsQoS());
-  state_publisher_ = std::make_unique<StatePublisher>(publisher_);
-
-  state_publisher_->lock();
-  state_publisher_->msg_.joint_names = params_.joints;
-  state_publisher_->msg_.reference.positions.resize(dof_);
-  state_publisher_->msg_.reference.velocities.resize(dof_);
-  state_publisher_->msg_.reference.effort.resize(dof_);
-  state_publisher_->msg_.feedback.positions.resize(dof_);
-  state_publisher_->msg_.error.positions.resize(dof_);
-  if (has_position_command_interface_)
-  {
-    state_publisher_->msg_.output.positions.resize(dof_);
-  }
-  if (has_velocity_command_interface_)
-  {
-    state_publisher_->msg_.output.velocities.resize(dof_);
-  }
-  if (has_effort_command_interface_)
-  {
-    state_publisher_->msg_.output.effort.resize(dof_);
-  }
-  state_publisher_->unlock();
-
-  last_state_publish_time_ = get_node()->now();
 
   // action server configuration
   if (params_.allow_partial_joints_goal)
@@ -811,18 +732,19 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
     std::shared_ptr<trajectory_msgs::msg::JointTrajectory>());
 
   subscriber_is_active_ = true;
-  last_state_publish_time_ = get_node()->now();
 
   // Handle restart of controller by reading from commands if those are not NaN (a controller was
   // running already)
   trajectory_msgs::msg::JointTrajectoryPoint state;
   resize_joint_trajectory_point_command(state, dof_);
   if (
-    params_.set_last_command_interface_value_as_state_on_activation &&
     read_state_from_command_interfaces(state))
   {
     state_current_ = state;
     last_commanded_state_ = state;
+  }else{
+	  resize_joint_trajectory_point_command(state_current_, dof_);
+	  resize_joint_trajectory_point_command(last_commanded_state_, dof_);
   }
 
   // The controller should start by holding position at the beginning of active state
@@ -923,71 +845,6 @@ bool JointTrajectoryController::reset()
   traj_external_point_ptr_.reset();
 
   return true;
-}
-
-void JointTrajectoryController::publish_state(
-  const JointTrajectoryPoint & desired_state, const JointTrajectoryPoint & current_state,
-  const JointTrajectoryPoint & state_error)
-{
-  if (state_publisher_period_.seconds() <= 0.0)
-  {
-    return;
-  }
-
-  if (get_node()->now() < (last_state_publish_time_ + state_publisher_period_))
-  {
-    return;
-  }
-
-  if (state_publisher_legacy_ && state_publisher_legacy_->trylock())
-  {
-    last_state_publish_time_ = get_node()->now();
-    state_publisher_legacy_->msg_.header.stamp = last_state_publish_time_;
-    state_publisher_legacy_->msg_.desired.positions = desired_state.positions;
-    state_publisher_legacy_->msg_.desired.velocities = desired_state.velocities;
-    state_publisher_legacy_->msg_.desired.effort = desired_state.effort;
-    state_publisher_legacy_->msg_.actual.positions = current_state.positions;
-    state_publisher_legacy_->msg_.actual.time_from_start = current_state.time_from_start;
-    state_publisher_legacy_->msg_.error.positions = state_error.positions;
-
-    state_publisher_legacy_->unlockAndPublish();
-
-    if (publisher_legacy_->get_subscription_count())
-    {
-      RCLCPP_WARN_THROTTLE(
-        get_node()->get_logger(), *get_node()->get_clock(), 1000,
-        "Subscription to deprecated ~/state topic. Use ~/controller_state instead.");
-    }
-  }
-
-  if (state_publisher_ && state_publisher_->trylock())
-  {
-    last_state_publish_time_ = get_node()->now();
-    state_publisher_->msg_.header.stamp = last_state_publish_time_;
-    state_publisher_->msg_.reference.positions = desired_state.positions;
-    state_publisher_->msg_.reference.velocities = desired_state.velocities;
-    state_publisher_->msg_.reference.effort = desired_state.effort;
-    state_publisher_->msg_.reference.time_from_start = desired_state.time_from_start;
-    state_publisher_->msg_.feedback.time_from_start = current_state.time_from_start;
-    state_publisher_->msg_.feedback.positions = current_state.positions;
-    state_publisher_->msg_.error.positions = state_error.positions;
-
-    // DESIRED and ACTUAL are deprecated in the message but we are still
-    // reporting on them
-    state_publisher_->msg_.desired.time_from_start = desired_state.time_from_start;
-    state_publisher_->msg_.desired.positions = desired_state.positions;
-    state_publisher_->msg_.desired.velocities = desired_state.velocities;
-    state_publisher_->msg_.desired.effort = desired_state.effort;
-    state_publisher_->msg_.actual.time_from_start = current_state.time_from_start;
-    state_publisher_->msg_.actual.positions = current_state.positions;
-
-    if (read_commands_from_command_interfaces(command_current_))
-    {
-      state_publisher_->msg_.output = command_current_;
-    }
-
-    state_publisher_->unlockAndPublish();
-  }
 }
 
 void JointTrajectoryController::topic_callback(

@@ -248,7 +248,7 @@ public:
   }
 
   void run_trajectory_with_logging(
-    rclcpp:: Executor & executor,
+ 
     double total_duration_sec,
     int num_samples)
   {
@@ -312,7 +312,7 @@ TEST_F(TrajectoryInterpolationTest, two_point_trajectory)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 1.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -367,7 +367,7 @@ TEST_F(TrajectoryInterpolationTest, three_point_with_velocities)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 1.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -433,7 +433,7 @@ TEST_F(TrajectoryInterpolationTest, trajectory_with_efforts)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.7, 120);
+  run_trajectory_with_logging( 1.7, 120);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -501,7 +501,7 @@ TEST_F(TrajectoryInterpolationTest, multi_segment_full_spec)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, 150);
+  run_trajectory_with_logging( 2.2, 150);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -546,7 +546,7 @@ TEST_F(TrajectoryInterpolationTest, linear_interpolation)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 1.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -600,7 +600,7 @@ TEST_F(TrajectoryInterpolationTest, s_curve_motion)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, 120);
+  run_trajectory_with_logging( 1.2, 120);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -663,7 +663,7 @@ TEST_F(TrajectoryInterpolationTest, return_motion_with_effort)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, 150);
+  run_trajectory_with_logging( 2.2, 150);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -722,7 +722,7 @@ TEST_F(TrajectoryInterpolationTest, position_effort_command_only)
   print_log_header();
   print_input_trajectory();
   // Symulacja trwa 2.2s. Próbka w połowie to 1.1s.
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 2.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -780,7 +780,7 @@ TEST_F(TrajectoryInterpolationTest, input_pos_effort_no_vel_msg)
   print_log_header();
   print_input_trajectory();
   // Symulacja trwa 2.2s. Próbka w połowie to 1.1s.
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 2.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
