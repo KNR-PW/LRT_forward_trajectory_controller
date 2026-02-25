@@ -69,29 +69,3 @@ joint_trajectory_controller:
      ``cmd_timeout`` must be greater than ``constraints.goal_time``, otherwise ignored.
      If zero, timeout is deactivated",
   }
-  constraints:
-    stopped_velocity_tolerance: {
-      type: double,
-      default_value: 0.01,
-      description: "Velocity tolerance for at the end of the trajectory that indicates that controlled system is stopped.",
-    }
-    goal_time: {
-      type: double,
-      default_value: 0.0,
-      description: "Time tolerance for achieving trajectory goal before or after commanded time.
-        If set to zero, the controller will wait a potentially infinite amount of time.",
-      validation: {
-        gt_eq: [0.0],
-      }
-    }
-    __map_joints:
-      trajectory: {
-        type: double,
-        default_value: 0.0,
-        description: "Per-joint trajectory offset tolerance during movement.",
-      }
-      goal: {
-        type: double,
-        default_value: 0.0,
-        description: "Per-joint trajectory offset tolerance at the goal position.",
-    }

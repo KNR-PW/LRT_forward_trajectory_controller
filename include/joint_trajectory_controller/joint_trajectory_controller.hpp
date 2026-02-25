@@ -28,7 +28,6 @@
 #include "controller_interface/controller_interface.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "joint_trajectory_controller/interpolation_methods.hpp"
-#include "joint_trajectory_controller/tolerances.hpp"
 #include "joint_trajectory_controller/trajectory.hpp"
 #include "joint_trajectory_controller/visibility_control.h"
 #include "rclcpp/duration.hpp"
@@ -193,11 +192,6 @@ protected:
   bool validate_trajectory_point_field(
     size_t joint_names_size, const std::vector<double> & vector_field,
     const std::string & string_for_vector_field, size_t i, bool allow_empty) const;
-
-  // the tolerances from the node parameter
-  SegmentTolerances default_tolerances_;
-  // the tolerances used for the current goal
-  realtime_tools::RealtimeBuffer<SegmentTolerances> active_tolerances_;
 
   JOINT_TRAJECTORY_CONTROLLER_PUBLIC
   void preempt_active_goal();

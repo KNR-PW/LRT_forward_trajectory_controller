@@ -119,7 +119,6 @@ controller_interface::return_type JointTrajectoryController::update(
   if (param_listener_->is_old(params_))
   {
     params_ = param_listener_->get_params();
-    default_tolerances_ = get_segment_tolerances(logger, params_);
   }
 
   // don't update goal after we sampled the trajectory to avoid any racecondition
@@ -181,7 +180,6 @@ controller_interface::return_type JointTrajectoryController::update(
       bool outside_goal_tolerance = false;
       bool within_goal_time = true;
       const bool before_last_point = end_segment_itr != traj_external_point_ptr_->end();
-      auto active_tol = active_tolerances_.readFromRT();
 
       // have we reached the end, are not holding position, and is a timeout configured?
       // Check independently of other tolerances
@@ -196,28 +194,26 @@ controller_interface::return_type JointTrajectoryController::update(
       }
 
       // Check state/goal tolerance
+	  
 
-      // set values for next hardware write() if tolerance is met
-      if (!tolerance_violated_while_moving && within_goal_time)
-      {
-        // set values for next hardware write()
-        if (has_position_command_interface_)
-        {
-          assign_interface_from_point(joint_command_interface_[0], state_desired_.positions);
-        }
-        if (has_velocity_command_interface_)
-        {
+	  // set values for next hardware write()
+		if (has_position_command_interface_)
+		{
+		  assign_interface_from_point(joint_command_interface_[0], state_desired_.positions);
+		}
+		if (has_velocity_command_interface_)
+		{
 			assign_interface_from_point(joint_command_interface_[1], state_desired_.velocities);
-        }
-        if (has_effort_command_interface_)
-        {
-          assign_interface_from_point(joint_command_interface_[2], state_desired_.effort);
-        }
+		}
+		if (has_effort_command_interface_)
+		{
+		  assign_interface_from_point(joint_command_interface_[2], state_desired_.effort);
+    	}
 
-        // store the previous command. Used in open-loop control mode
-        last_commanded_state_ = state_desired_;
-      }
+	// store the previous command. Used in open-loop control mode
+	  last_commanded_state_ = state_desired_;
 
+	  
       if (active_goal)
       {
         // send feedback
@@ -230,80 +226,20 @@ controller_interface::return_type JointTrajectoryController::update(
         active_goal->setFeedback(feedback);
 
         // check abort
-        if (tolerance_violated_while_moving)
-        {
-          auto result = std::make_shared<FollowJTrajAction::Result>();
-          result->set__error_code(FollowJTrajAction::Result::PATH_TOLERANCE_VIOLATED);
-          result->set__error_string("Aborted due to path tolerance violation");
-          active_goal->setAborted(result);
-          // TODO(matthew-reynolds): Need a lock-free write here
-          // See https://github.com/ros-controls/ros2_controllers/issues/168
-          rt_active_goal_.writeFromNonRT(RealtimeGoalHandlePtr());
-          rt_has_pending_goal_ = false;
+		auto result = std::make_shared<FollowJTrajAction::Result>();
+		result->set__error_code(FollowJTrajAction::Result::SUCCESSFUL);
+		result->set__error_string("Goal successfully reached!");
+		active_goal->setSucceeded(result);
+		// TODO(matthew-reynolds): Need a lock-free write here
+		// See https://github.com/ros-controls/ros2_controllers/issues/168
+		rt_active_goal_.writeFromNonRT(RealtimeGoalHandlePtr());
+		rt_has_pending_goal_ = false;
 
-          RCLCPP_WARN(logger, "Aborted due to state tolerance violation");
+		RCLCPP_INFO(logger, "Goal reached, success!");
 
-          traj_msg_external_point_ptr_.reset();
-          traj_msg_external_point_ptr_.initRT(set_hold_position());
-        }
-        // check goal tolerance
-        else if (!before_last_point)
-        {
-          if (!outside_goal_tolerance)
-          {
-            auto result = std::make_shared<FollowJTrajAction::Result>();
-            result->set__error_code(FollowJTrajAction::Result::SUCCESSFUL);
-            result->set__error_string("Goal successfully reached!");
-            active_goal->setSucceeded(result);
-            // TODO(matthew-reynolds): Need a lock-free write here
-            // See https://github.com/ros-controls/ros2_controllers/issues/168
-            rt_active_goal_.writeFromNonRT(RealtimeGoalHandlePtr());
-            rt_has_pending_goal_ = false;
-
-            RCLCPP_INFO(logger, "Goal reached, success!");
-
-            traj_msg_external_point_ptr_.reset();
-            traj_msg_external_point_ptr_.initRT(set_success_trajectory_point());
-          }
-          else if (!within_goal_time)
-          {
-            const std::string error_string = "Aborted due to goal_time_tolerance exceeding by " +
-                                             std::to_string(time_difference) + " seconds";
-
-            auto result = std::make_shared<FollowJTrajAction::Result>();
-            result->set__error_code(FollowJTrajAction::Result::GOAL_TOLERANCE_VIOLATED);
-            result->set__error_string(error_string);
-            active_goal->setAborted(result);
-            // TODO(matthew-reynolds): Need a lock-free write here
-            // See https://github.com/ros-controls/ros2_controllers/issues/168
-            rt_active_goal_.writeFromNonRT(RealtimeGoalHandlePtr());
-            rt_has_pending_goal_ = false;
-
-            RCLCPP_WARN(logger, "%s", error_string.c_str());
-
-            traj_msg_external_point_ptr_.reset();
-            traj_msg_external_point_ptr_.initRT(set_hold_position());
-          }
-        }
-      }
-      else if (tolerance_violated_while_moving && !rt_has_pending_goal_)
-      {
-        // we need to ensure that there is no pending goal -> we get a race condition otherwise
-        RCLCPP_ERROR(logger, "Holding position due to state tolerance violation");
-
-        traj_msg_external_point_ptr_.reset();
-        traj_msg_external_point_ptr_.initRT(set_hold_position());
-      }
-      else if (!before_last_point && !within_goal_time && !rt_has_pending_goal_)
-      {
-        RCLCPP_ERROR(logger, "Exceeded goal_time_tolerance: holding position...");
-
-        traj_msg_external_point_ptr_.reset();
-        traj_msg_external_point_ptr_.initRT(set_hold_position());
-      }
-      // else, run another cycle while waiting for outside_goal_tolerance
-      // to be satisfied (will stay in this state until new message arrives)
-      // or outside_goal_tolerance violated within the goal_time_tolerance
+		traj_msg_external_point_ptr_.reset();
+		traj_msg_external_point_ptr_.initRT(set_success_trajectory_point());
+	  }
     }
   }
 
@@ -534,8 +470,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
 	);
 
   // parse remaining parameters
-  default_tolerances_ = get_segment_tolerances(logger, params_);
-  active_tolerances_.initRT(default_tolerances_);
   const std::string interpolation_string =
     get_node()->get_parameter("interpolation_method").as_string();
   interpolation_method_ = interpolation_methods::from_string(interpolation_string);
@@ -593,8 +527,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
   // get parameters from the listener in case they were updated
   params_ = param_listener_->get_params();
 
-  // parse remaining parameters
-  default_tolerances_ = get_segment_tolerances(logger, params_);
 
   // order all joints in the storage
   for (const auto & interface : params_.command_interfaces)
@@ -627,18 +559,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
   // parse timeout parameter
   if (params_.cmd_timeout > 0.0)
   {
-    if (params_.cmd_timeout > default_tolerances_.goal_time_tolerance)
-    {
-      cmd_timeout_ = params_.cmd_timeout;
-    }
-    else
-    {
-      // deactivate timeout
-      RCLCPP_WARN(
-        logger, "Command timeout must be higher than goal_time tolerance (%f vs. %f)",
-        params_.cmd_timeout, default_tolerances_.goal_time_tolerance);
-      cmd_timeout_ = 0.0;
-    }
+	  cmd_timeout_ = params_.cmd_timeout;
   }
   else
   {
@@ -803,11 +724,6 @@ void JointTrajectoryController::goal_accepted_callback(
   rt_goal->preallocated_feedback_->joint_names = params_.joints;
   rt_goal->execute();
   rt_active_goal_.writeFromNonRT(rt_goal);
-
-  // Update tolerances if specified in the goal
-  auto logger = this->get_node()->get_logger();
-  active_tolerances_.writeFromNonRT(get_segment_tolerances(
-    logger, default_tolerances_, *(goal_handle->get_goal()), params_.joints));
 
   // Set smartpointer to expire for create_wall_timer to delete previous entry from timer list
   goal_handle_timer_.reset();

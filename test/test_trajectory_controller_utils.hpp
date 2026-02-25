@@ -25,7 +25,6 @@
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "joint_trajectory_controller/joint_trajectory_controller.hpp"
-#include "joint_trajectory_controller/tolerances.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 
 namespace
@@ -43,38 +42,6 @@ const std::vector<double> INITIAL_EFF_JOINTS = {0.0, 0.0, 0.0};
 const double default_goal_time = 0.1;
 const double stopped_velocity_tolerance = 0.1;
 
-[[maybe_unused]] void expectDefaultTolerances(
-  joint_trajectory_controller::SegmentTolerances active_tolerances)
-{
-  EXPECT_DOUBLE_EQ(active_tolerances.goal_time_tolerance, default_goal_time);
-
-  // acceleration is never set, and goal_state_tolerance.velocity from stopped_velocity_tolerance
-
-  ASSERT_EQ(active_tolerances.state_tolerance.size(), 3);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(0).position, 0.1);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(0).velocity, 0.0);
-  // EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(0).acceleration, 0.0);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(1).position, 0.1);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(1).velocity, 0.0);
-  // EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(1).acceleration, 0.0);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(2).position, 0.1);
-  EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(2).velocity, 0.0);
-  // EXPECT_DOUBLE_EQ(active_tolerances.state_tolerance.at(2).acceleration, 0.0);
-
-  ASSERT_EQ(active_tolerances.goal_state_tolerance.size(), 3);
-  EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(0).position, 0.1);
-  EXPECT_DOUBLE_EQ(
-    active_tolerances.goal_state_tolerance.at(0).velocity, stopped_velocity_tolerance);
-  // EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(0).acceleration, 0.0);
-  EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(1).position, 0.1);
-  EXPECT_DOUBLE_EQ(
-    active_tolerances.goal_state_tolerance.at(1).velocity, stopped_velocity_tolerance);
-  // EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(1).acceleration, 0.0);
-  EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(2).position, 0.1);
-  EXPECT_DOUBLE_EQ(
-    active_tolerances.goal_state_tolerance.at(2).velocity, stopped_velocity_tolerance);
-  // EXPECT_DOUBLE_EQ(active_tolerances.goal_state_tolerance.at(2).acceleration, 0.0);
-}
 
 }  // namespace
 
@@ -141,20 +108,6 @@ public:
   // bool has_acceleration_command_interface() const { return has_acceleration_command_interface_; }
   //
   bool has_effort_command_interface() const { return has_effort_command_interface_; }
-
-
-
-  joint_trajectory_controller::SegmentTolerances get_active_tolerances()
-  {
-    return *(active_tolerances_.readFromRT());
-  }
-
-  // std::vector<PidPtr> get_pids() const { return pids_; }
-
-  joint_trajectory_controller::SegmentTolerances get_tolerances() const
-  {
-    return default_tolerances_;
-  }
 
   bool has_active_traj() const { return has_active_trajectory(); }
 
