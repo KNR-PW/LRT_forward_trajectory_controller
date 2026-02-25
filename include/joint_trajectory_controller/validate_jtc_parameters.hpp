@@ -36,9 +36,8 @@ tl::expected<void, std::string> command_interface_type_combinations(
   // 3. position velocity efort
   // 4. position effort 
   if (
-    rsl::contains<std::vector<std::string>>(interface_types, "velocity") &&!(
-	interface_types.size() == 1 ||
-    rsl::contains<std::vector<std::string>>(interface_types, "position")))
+    rsl::contains<std::vector<std::string>>(interface_types, "velocity") &&
+    !rsl::contains<std::vector<std::string>>(interface_types, "position"))
   {
     return tl::make_unexpected(
       "'velocity' command interface can be used only if 'position' "
@@ -46,9 +45,8 @@ tl::expected<void, std::string> command_interface_type_combinations(
   }
 
   if (
-    rsl::contains<std::vector<std::string>>(interface_types, "effort") &&!(
-    interface_types.size() == 1 ||
-	rsl::contains<std::vector<std::string>>(interface_types,"position")))
+    rsl::contains<std::vector<std::string>>(interface_types, "effort") &&
+	!rsl::contains<std::vector<std::string>>(interface_types,"position"))
   {
     return tl::make_unexpected("'effort' command interface can be used only if 'position' command interface is present");
   }

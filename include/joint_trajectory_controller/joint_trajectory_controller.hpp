@@ -101,10 +101,8 @@ protected:
   };
 
   // Preallocate variables used in the realtime update() function
-  trajectory_msgs::msg::JointTrajectoryPoint state_current_;
   trajectory_msgs::msg::JointTrajectoryPoint command_current_;
   trajectory_msgs::msg::JointTrajectoryPoint state_desired_;
-  trajectory_msgs::msg::JointTrajectoryPoint state_error_;
 
   // Degrees of freedom
   size_t dof_;
@@ -224,7 +222,6 @@ protected:
 
   using JointTrajectoryPoint = trajectory_msgs::msg::JointTrajectoryPoint;
 
-  bool read_state_from_command_interfaces(JointTrajectoryPoint & state);
   bool read_commands_from_command_interfaces(JointTrajectoryPoint & commands);
 
   void query_state_service(

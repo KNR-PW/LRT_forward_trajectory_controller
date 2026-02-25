@@ -170,9 +170,15 @@ public:
 
   double get_cmd_timeout() { return cmd_timeout_; }
 
-  trajectory_msgs::msg::JointTrajectoryPoint get_state_feedback() { return state_current_; }
+  trajectory_msgs::msg::JointTrajectoryPoint get_state_feedback() { return last_commanded_state_; }
   trajectory_msgs::msg::JointTrajectoryPoint get_state_reference() { return state_desired_; }
-  trajectory_msgs::msg::JointTrajectoryPoint get_state_error() { return state_error_; }
+  trajectory_msgs::msg::JointTrajectoryPoint get_state_error() { 
+    trajectory_msgs::msg::JointTrajectoryPoint zero_error = state_desired_;
+    std::fill(zero_error.positions.begin(), zero_error.positions.end(), 0.0);
+    std::fill(zero_error.velocities.begin(), zero_error.velocities.end(), 0.0);
+    std::fill(zero_error.effort.begin(), zero_error.effort.end(), 0.0);
+    return zero_error; 
+  }
 };
 
 class TrajectoryControllerTest : public ::testing::Test
@@ -316,12 +322,6 @@ public:
       cmd_interfaces.back().set_value(initial_vel_joints[i]);
       cmd_interfaces.emplace_back(eff_cmd_interfaces_.back());
       cmd_interfaces.back().set_value(initial_eff_joints[i]);
-      if (separate_cmd_and_state_values)
-      {
-        joint_state_pos_[i] = INITIAL_POS_JOINTS[i];
-        joint_state_vel_[i] = INITIAL_VEL_JOINTS[i];
-        joint_state_eff_[i] = INITIAL_EFF_JOINTS[i];
-      }
     }
 
     traj_controller_->assign_interfaces(std::move(cmd_interfaces), std::move(state_interfaces));

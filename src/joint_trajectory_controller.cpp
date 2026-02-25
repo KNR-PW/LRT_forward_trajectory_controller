@@ -122,28 +122,6 @@ controller_interface::return_type JointTrajectoryController::update(
     default_tolerances_ = get_segment_tolerances(logger, params_);
   }
 
-  auto compute_error_for_joint = [&](
-                                   JointTrajectoryPoint & error, size_t index,
-                                   const JointTrajectoryPoint & current,
-                                   const JointTrajectoryPoint & desired)
-  {
-    // error defined as the difference between current and desired
-      // if desired, the shortest_angular_distance is calculated, i.e., the error is
-      //  normalized between -pi<error<pi
-      error.positions[index] = desired.positions[index] - current.positions[index];
-    if (
-      has_velocity_command_interface_ )
-    {
-      error.velocities[index] = desired.velocities[index] - current.velocities[index];
-    }
-    if (
-			// has_effort_state_interface_ &&
-			has_effort_command_interface_)
-    {
-      error.effort[index] = desired.effort[index] - current.effort[index];
-    }
-  };
-
   // don't update goal after we sampled the trajectory to avoid any racecondition
   const auto active_goal = *rt_active_goal_.readFromRT();
 
@@ -170,7 +148,6 @@ controller_interface::return_type JointTrajectoryController::update(
     }
   };
 
-  state_current_ = last_commanded_state_;
 
   // currently carrying out a trajectory
   if (has_active_trajectory())
@@ -180,15 +157,13 @@ controller_interface::return_type JointTrajectoryController::update(
     if (!traj_external_point_ptr_->is_sampled_already())
     {
       first_sample = true;
-	  traj_external_point_ptr_->set_point_before_trajectory_msg(
-          time, last_commanded_state_);
     }
 
     // find segment for current timestamp
     TrajectoryPointConstIter start_segment_itr, end_segment_itr;
     const bool valid_point = traj_external_point_ptr_->sample(
       time, interpolation_method_, state_desired_, start_segment_itr, end_segment_itr);
-    state_desired_.time_from_start = state_current_.time_from_start =
+    state_desired_.time_from_start = 
       time - traj_external_point_ptr_->time_from_start();
 
     if (valid_point)
@@ -221,42 +196,6 @@ controller_interface::return_type JointTrajectoryController::update(
       }
 
       // Check state/goal tolerance
-      for (size_t index = 0; index < dof_; ++index)
-      {
-        compute_error_for_joint(state_error_, index, state_current_, state_desired_);
-
-        // Always check the state tolerance on the first sample in case the first sample
-        // is the last point
-        // print output per default, goal will be aborted afterwards
-        if (
-          (before_last_point || first_sample) && !rt_is_holding_ &&
-          !check_state_tolerance_per_joint(
-            state_error_, index, active_tol->state_tolerance[index], true /* show_errors */))
-        {
-          tolerance_violated_while_moving = true;
-        }
-        // past the final point, check that we end up inside goal tolerance
-        if (
-          !before_last_point && !rt_is_holding_ &&
-          !check_state_tolerance_per_joint(
-            state_error_, index, active_tol->goal_state_tolerance[index], false /* show_errors */))
-        {
-          outside_goal_tolerance = true;
-
-          if (active_tol->goal_time_tolerance != 0.0)
-          {
-            // if we exceed goal_time_tolerance set it to aborted
-            if (time_difference > active_tol->goal_time_tolerance)
-            {
-              within_goal_time = false;
-              // print once, goal will be aborted afterwards
-              check_state_tolerance_per_joint(
-                state_error_, index, default_tolerances_.goal_state_tolerance[index],
-                true /* show_errors */);
-            }
-          }
-        }
-      }
 
       // set values for next hardware write() if tolerance is met
       if (!tolerance_violated_while_moving && within_goal_time)
@@ -286,9 +225,8 @@ controller_interface::return_type JointTrajectoryController::update(
         feedback->header.stamp = time;
         feedback->joint_names = params_.joints;
 
-        feedback->actual = state_current_;
+        feedback->actual = state_desired_;
         feedback->desired = state_desired_;
-        feedback->error = state_error_;
         active_goal->setFeedback(feedback);
 
         // check abort
@@ -372,57 +310,6 @@ controller_interface::return_type JointTrajectoryController::update(
   return controller_interface::return_type::OK;
 }
 
-bool JointTrajectoryController::read_state_from_command_interfaces(JointTrajectoryPoint & state)
-{
-  bool has_values = true;
-
-  auto assign_point_from_interface =
-    [&](std::vector<double> & trajectory_point_interface, const auto & joint_interface)
-  {
-    for (size_t index = 0; index < dof_; ++index)
-    {
-      trajectory_point_interface[index] = joint_interface[index].get().get_value();
-    }
-  };
-
-  auto interface_has_values = [](const auto & joint_interface)
-  {
-    return std::find_if(
-             joint_interface.begin(), joint_interface.end(), [](const auto & interface)
-             { return std::isnan(interface.get().get_value()); }) == joint_interface.end();
-  };
-
-  // Assign values from the command interfaces as state. Therefore needs check for both.
-  // Position state interface has to exist always
-  if (has_position_command_interface_ && interface_has_values(joint_command_interface_[0]))
-  {
-    assign_point_from_interface(state.positions, joint_command_interface_[0]);
-  }
-  else
-  {
-    state.positions.clear();
-    has_values = false;
-  }
-  // velocity and effort states are optional
-
-
-  if (has_velocity_command_interface_ && interface_has_values(joint_command_interface_[1]))
-  {
-	  assign_point_from_interface(state.velocities, joint_command_interface_[1]);
-  }
-  else
-  {
-    state.velocities.clear();
-    has_values = false;
-  }
-  if(has_effort_command_interface_ && interface_has_values(joint_command_interface_[2])){
-	  assign_point_from_interface(state.effort, joint_command_interface_[2]);
-  }else {
-	  state.effort.clear();
-	  has_values=false;
-  }
-  return has_values;
-}
 
 bool JointTrajectoryController::read_commands_from_command_interfaces(
   JointTrajectoryPoint & commands)
@@ -499,7 +386,7 @@ void JointTrajectoryController::query_state_service(
   }
   const auto active_goal = *rt_active_goal_.readFromRT();
   response->name = params_.joints;
-  trajectory_msgs::msg::JointTrajectoryPoint state_requested = state_current_;
+  trajectory_msgs::msg::JointTrajectoryPoint state_requested = last_commanded_state_;
   if (has_active_trajectory())
   {
     TrajectoryPointConstIter start_segment_itr, end_segment_itr;
@@ -684,10 +571,8 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     std::bind(&JointTrajectoryController::goal_cancelled_callback, this, _1),
     std::bind(&JointTrajectoryController::goal_accepted_callback, this, _1));
 
-  resize_joint_trajectory_point_command(state_current_, dof_);
   resize_joint_trajectory_point_command(command_current_, dof_);
   resize_joint_trajectory_point_command(state_desired_, dof_);
-  resize_joint_trajectory_point_command(state_error_, dof_);
   resize_joint_trajectory_point_command(last_commanded_state_, dof_);
 
   query_state_srv_ = get_node()->create_service<control_msgs::srv::QueryTrajectoryState>(
@@ -733,19 +618,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
 
   subscriber_is_active_ = true;
 
-  // Handle restart of controller by reading from commands if those are not NaN (a controller was
-  // running already)
-  trajectory_msgs::msg::JointTrajectoryPoint state;
-  resize_joint_trajectory_point_command(state, dof_);
-  if (
-    read_state_from_command_interfaces(state))
-  {
-    state_current_ = state;
-    last_commanded_state_ = state;
-  }else{
-	  resize_joint_trajectory_point_command(state_current_, dof_);
-	  resize_joint_trajectory_point_command(last_commanded_state_, dof_);
-  }
+  resize_joint_trajectory_point_command(last_commanded_state_, dof_);
 
   // The controller should start by holding position at the beginning of active state
   add_new_trajectory_msg(set_hold_position());
@@ -1216,7 +1089,7 @@ std::shared_ptr<trajectory_msgs::msg::JointTrajectory>
 JointTrajectoryController::set_hold_position()
 {
   // Command to stay at current position
-  hold_position_msg_ptr_->points[0].positions = state_current_.positions;
+  hold_position_msg_ptr_->points[0].positions = last_commanded_state_.positions;
 
   // set flag, otherwise tolerances will be checked with holding position too
   rt_is_holding_ = true;
