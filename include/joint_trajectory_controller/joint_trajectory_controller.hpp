@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "control_msgs/action/follow_joint_trajectory.hpp"
-#include "control_msgs/msg/joint_trajectory_controller_state.hpp"
 #include "control_msgs/srv/query_trajectory_state.hpp"
 #include "controller_interface/controller_interface.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
@@ -100,7 +99,6 @@ protected:
   };
 
   // Preallocate variables used in the realtime update() function
-  trajectory_msgs::msg::JointTrajectoryPoint command_current_;
   trajectory_msgs::msg::JointTrajectoryPoint state_desired_;
 
   // Degrees of freedom
@@ -215,8 +213,6 @@ protected:
   bool has_active_trajectory() const;
 
   using JointTrajectoryPoint = trajectory_msgs::msg::JointTrajectoryPoint;
-
-  bool read_commands_from_command_interfaces(JointTrajectoryPoint & commands);
 
   void query_state_service(
     const std::shared_ptr<control_msgs::srv::QueryTrajectoryState::Request> request,

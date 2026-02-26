@@ -176,9 +176,6 @@ controller_interface::return_type JointTrajectoryController::update(
       // - negative until first point is reached
       // - counting from zero to time_from_start of next point
       double time_difference = time.seconds() - segment_time_from_start.seconds();
-      bool tolerance_violated_while_moving = false;
-      bool outside_goal_tolerance = false;
-      bool within_goal_time = true;
       const bool before_last_point = end_segment_itr != traj_external_point_ptr_->end();
 
       // have we reached the end, are not holding position, and is a timeout configured?
@@ -193,8 +190,6 @@ controller_interface::return_type JointTrajectoryController::update(
         traj_msg_external_point_ptr_.initRT(set_hold_position());
       }
 
-      // Check state/goal tolerance
-	  
 
 	  // set values for next hardware write()
 		if (has_position_command_interface_)
@@ -244,68 +239,6 @@ controller_interface::return_type JointTrajectoryController::update(
   }
 
   return controller_interface::return_type::OK;
-}
-
-
-bool JointTrajectoryController::read_commands_from_command_interfaces(
-  JointTrajectoryPoint & commands)
-{
-  bool has_values = true;
-
-  auto assign_point_from_interface =
-    [&](std::vector<double> & trajectory_point_interface, const auto & joint_interface)
-  {
-    for (size_t index = 0; index < dof_; ++index)
-    {
-      trajectory_point_interface[index] = joint_interface[index].get().get_value();
-    }
-  };
-
-  auto interface_has_values = [](const auto & joint_interface)
-  {
-    return std::find_if(
-             joint_interface.begin(), joint_interface.end(), [](const auto & interface)
-             { return std::isnan(interface.get().get_value()); }) == joint_interface.end();
-  };
-
-  // Assign values from the command interfaces as command.
-  if (has_position_command_interface_)
-  {
-    if (interface_has_values(joint_command_interface_[0]))
-    {
-      assign_point_from_interface(commands.positions, joint_command_interface_[0]);
-    }
-    else
-    {
-      commands.positions.clear();
-      has_values = false;
-    }
-  }
-  if (has_velocity_command_interface_)
-  {
-    if (interface_has_values(joint_command_interface_[1]))
-    {
-      assign_point_from_interface(commands.velocities, joint_command_interface_[1]);
-    }
-    else
-    {
-      commands.velocities.clear();
-      has_values = false;
-    }
-  }
-  if (has_effort_command_interface_)
-  {
-    if (interface_has_values(joint_command_interface_[2]))
-    {
-      assign_point_from_interface(commands.effort, joint_command_interface_[2]);
-    }
-    else
-    {
-      commands.effort.clear();
-      has_values = false;
-    }
-  }
-  return has_values;
 }
 
 void JointTrajectoryController::query_state_service(
@@ -505,7 +438,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     std::bind(&JointTrajectoryController::goal_cancelled_callback, this, _1),
     std::bind(&JointTrajectoryController::goal_accepted_callback, this, _1));
 
-  resize_joint_trajectory_point_command(command_current_, dof_);
   resize_joint_trajectory_point_command(state_desired_, dof_);
   resize_joint_trajectory_point_command(last_commanded_state_, dof_);
 
@@ -1007,7 +939,6 @@ JointTrajectoryController::set_hold_position()
   // Command to stay at current position
   hold_position_msg_ptr_->points[0].positions = last_commanded_state_.positions;
 
-  // set flag, otherwise tolerances will be checked with holding position too
   rt_is_holding_ = true;
 
   return hold_position_msg_ptr_;
@@ -1021,7 +952,6 @@ JointTrajectoryController::set_success_trajectory_point()
   hold_position_msg_ptr_->points[0] = traj_external_point_ptr_->get_trajectory_msg()->points.back();
   hold_position_msg_ptr_->points[0].time_from_start = rclcpp::Duration(0, 0);
 
-  // set flag, otherwise tolerances will be checked with success_trajectory_point too
   rt_is_holding_ = true;
 
   return hold_position_msg_ptr_;

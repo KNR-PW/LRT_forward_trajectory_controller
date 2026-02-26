@@ -240,12 +240,11 @@ public:
     traj_controller_->get_node()->configure();
 
     ActivateTrajectoryController(
-      separate_cmd_and_state_values, initial_pos_joints, initial_vel_joints, 
+       initial_pos_joints, initial_vel_joints, 
       initial_eff_joints);
   }
 
   rclcpp_lifecycle::State ActivateTrajectoryController(
-    bool separate_cmd_and_state_values = false,
     const std::vector<double> initial_pos_joints = INITIAL_POS_JOINTS,
     const std::vector<double> initial_vel_joints = INITIAL_VEL_JOINTS,
     const std::vector<double> initial_eff_joints = INITIAL_EFF_JOINTS)
@@ -295,57 +294,6 @@ public:
   }
 
   static void TearDownTestCase() { rclcpp::shutdown(); }
-
-  void subscribeToStateLegacy()
-  {
-    auto traj_lifecycle_node = traj_controller_->get_node();
-    traj_lifecycle_node->set_parameter(
-      rclcpp::Parameter("state_publish_rate", static_cast<double>(100)));
-
-    using control_msgs::msg::JointTrajectoryControllerState;
-
-    auto qos = rclcpp::SensorDataQoS();
-    // Needed, otherwise spin_some() returns only the oldest message in the queue
-    // I do not understand why spin_some provides only one message
-    qos.keep_last(1);
-    state_legacy_subscriber_ =
-      traj_lifecycle_node->create_subscription<JointTrajectoryControllerState>(
-        controller_name_ + "/state", qos,
-        [&](std::shared_ptr<JointTrajectoryControllerState> msg)
-        {
-          std::lock_guard<std::mutex> guard(state_legacy_mutex_);
-          state_legacy_msg_ = msg;
-        });
-  }
-
-  void subscribeToState(rclcpp::Executor & executor)
-  {
-    auto traj_lifecycle_node = traj_controller_->get_node();
-    traj_lifecycle_node->set_parameter(
-      rclcpp::Parameter("state_publish_rate", static_cast<double>(100)));
-
-    using control_msgs::msg::JointTrajectoryControllerState;
-
-    auto qos = rclcpp::SensorDataQoS();
-    // Needed, otherwise spin_some() returns only the oldest message in the queue
-    // I do not understand why spin_some provides only one message
-    qos.keep_last(1);
-    state_subscriber_ = traj_lifecycle_node->create_subscription<JointTrajectoryControllerState>(
-      controller_name_ + "/controller_state", qos,
-      [&](std::shared_ptr<JointTrajectoryControllerState> msg)
-      {
-        std::lock_guard<std::mutex> guard(state_mutex_);
-        state_msg_ = msg;
-      });
-
-    const auto timeout = std::chrono::milliseconds{10};
-    const auto until = traj_lifecycle_node->get_clock()->now() + timeout;
-    while (traj_lifecycle_node->get_clock()->now() < until)
-    {
-      executor.spin_some();
-      std::this_thread::sleep_for(std::chrono::microseconds(10));
-    }
-  }
 
   /// Publish trajectory msgs with multiple points
   /**
@@ -482,7 +430,6 @@ public:
   {
     {
       std::lock_guard<std::mutex> guard(state_mutex_);
-      state_msg_.reset();
     }
     traj_controller_->wait_for_trajectory(executor);
     auto end_time = updateControllerAsync(controller_wait_time, start_time);
@@ -514,16 +461,6 @@ public:
     return end_time;
   }
 
-  std::shared_ptr<control_msgs::msg::JointTrajectoryControllerState> getStateLegacy() const
-  {
-    std::lock_guard<std::mutex> guard(state_legacy_mutex_);
-    return state_legacy_msg_;
-  }
-  std::shared_ptr<control_msgs::msg::JointTrajectoryControllerState> getState() const
-  {
-    std::lock_guard<std::mutex> guard(state_mutex_);
-    return state_msg_;
-  }
   void test_state_publish_rate_target(int target_msg_count);
 
   void expectCommandPoint(
@@ -640,14 +577,8 @@ public:
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr trajectory_publisher_;
 
   std::shared_ptr<TestableJointTrajectoryController> traj_controller_;
-  rclcpp::Subscription<control_msgs::msg::JointTrajectoryControllerState>::SharedPtr
-    state_subscriber_;
   mutable std::mutex state_mutex_;
-  std::shared_ptr<control_msgs::msg::JointTrajectoryControllerState> state_msg_;
-  rclcpp::Subscription<control_msgs::msg::JointTrajectoryControllerState>::SharedPtr
-    state_legacy_subscriber_;
   mutable std::mutex state_legacy_mutex_;
-  std::shared_ptr<control_msgs::msg::JointTrajectoryControllerState> state_legacy_msg_;
 
   std::vector<double> joint_pos_;
   std::vector<double> joint_vel_;
