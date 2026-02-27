@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "joint_trajectory_controller/joint_trajectory_controller.hpp"
+#include "joint_forward_trajectory_controller/joint_forward_trajectory_controller.hpp"
 
 #include <chrono>
 #include <functional>
@@ -27,7 +27,7 @@
 #include "controller_interface/helpers.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
-#include "joint_trajectory_controller/trajectory.hpp"
+#include "joint_forward_trajectory_controller/trajectory.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 #include "rclcpp/logging.hpp"
 #include "rclcpp/qos.hpp"
@@ -37,7 +37,7 @@
 #include "rclcpp_action/server_goal_handle.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
-namespace joint_trajectory_controller
+namespace joint_forward_trajectory_controller
 {
 JointTrajectoryController::JointTrajectoryController()
 : controller_interface::ControllerInterface(), dof_(0)
@@ -401,7 +401,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   // create subscriber
   joint_command_subscriber_ =
     get_node()->create_subscription<trajectory_msgs::msg::JointTrajectory>(
-      "~/joint_trajectory", rclcpp::SystemDefaultsQoS(),
+      "~/joint_forward_trajectory", rclcpp::SystemDefaultsQoS(),
       std::bind(&JointTrajectoryController::topic_callback, this, std::placeholders::_1));
 
   // action server configuration
@@ -418,13 +418,13 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   action_server_ = rclcpp_action::create_server<FollowJTrajAction>(
     get_node()->get_node_base_interface(), get_node()->get_node_clock_interface(),
     get_node()->get_node_logging_interface(), get_node()->get_node_waitables_interface(),
-    std::string(get_node()->get_name()) + "/follow_joint_trajectory",
+    std::string(get_node()->get_name()) + "/follow_joint_forward_trajectory",
     std::bind(&JointTrajectoryController::goal_received_callback, this, _1, _2),
     std::bind(&JointTrajectoryController::goal_cancelled_callback, this, _1),
     std::bind(&JointTrajectoryController::goal_accepted_callback, this, _1));
 
-  resize_joint_trajectory_point_command(state_desired_, dof_);
-  resize_joint_trajectory_point_command(last_commanded_state_, dof_);
+  resize_joint_forward_trajectory_point_command(state_desired_, dof_);
+  resize_joint_forward_trajectory_point_command(last_commanded_state_, dof_);
 
   query_state_srv_ = get_node()->create_service<control_msgs::srv::QueryTrajectoryState>(
     std::string(get_node()->get_name()) + "/query_state",
@@ -467,7 +467,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
 
   subscriber_is_active_ = true;
 
-  resize_joint_trajectory_point_command(last_commanded_state_, dof_);
+  resize_joint_forward_trajectory_point_command(last_commanded_state_, dof_);
 
   // The controller should start by holding position at the beginning of active state
   add_new_trajectory_msg(set_hold_position());
@@ -565,7 +565,7 @@ void JointTrajectoryController::topic_callback(
   {
     return;
   }
-  // http://wiki.ros.org/joint_trajectory_controller/UnderstandingTrajectoryReplacement
+  // http://wiki.ros.org/joint_forward_trajectory_controller/UnderstandingTrajectoryReplacement
   // always replace old msg with new one for now
   if (subscriber_is_active_)
   {
@@ -949,7 +949,7 @@ bool JointTrajectoryController::contains_interface_type(
          interface_type_list.end();
 }
 
-void JointTrajectoryController::resize_joint_trajectory_point_command(
+void JointTrajectoryController::resize_joint_forward_trajectory_point_command(
   trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size)
 {
   if (has_position_command_interface_)
@@ -987,9 +987,9 @@ void JointTrajectoryController::init_hold_position_msg()
   }
 }
 
-}  // namespace joint_trajectory_controller
+}  // namespace joint_forward_trajectory_controller
 
 #include "pluginlib/class_list_macros.hpp"
 
 PLUGINLIB_EXPORT_CLASS(
-  joint_trajectory_controller::JointTrajectoryController, controller_interface::ControllerInterface)
+  joint_forward_trajectory_controller::JointTrajectoryController, controller_interface::ControllerInterface)

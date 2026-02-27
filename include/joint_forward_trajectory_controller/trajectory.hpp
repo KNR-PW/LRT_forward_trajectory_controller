@@ -18,12 +18,12 @@
 #include <memory>
 #include <vector>
 
-#include "joint_trajectory_controller/interpolation_methods.hpp"
-#include "joint_trajectory_controller/visibility_control.h"
+#include "joint_forward_trajectory_controller/interpolation_methods.hpp"
+#include "joint_forward_trajectory_controller/visibility_control.h"
 #include "rclcpp/time.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "trajectory_msgs/msg/joint_trajectory_point.hpp"
-namespace joint_trajectory_controller
+namespace joint_forward_trajectory_controller
 {
 using TrajectoryPointIter = std::vector<trajectory_msgs::msg::JointTrajectoryPoint>::iterator;
 using TrajectoryPointConstIter =
@@ -36,7 +36,7 @@ public:
   Trajectory();
 
   JOINT_TRAJECTORY_CONTROLLER_PUBLIC
-  explicit Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory);
+  explicit Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory);
 
   /**
    *  Set the point before the trajectory message is replaced/appended
@@ -48,7 +48,7 @@ public:
    */
 
   JOINT_TRAJECTORY_CONTROLLER_PUBLIC
-  void update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory);
+  void update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory);
 
   /// Find the segment (made up of 2 points) and its expected state from the
   /// containing trajectory.
@@ -195,6 +195,6 @@ inline std::vector<size_t> mapping(const T & t1, const T & t2)
   return mapping_vector;
 }
 
-}  // namespace joint_trajectory_controller
+}  // namespace joint_forward_trajectory_controller
 
 #endif  // JOINT_TRAJECTORY_CONTROLLER__TRAJECTORY_HPP_

@@ -1,4 +1,4 @@
-joint_trajectory_controller:
+joint_forward_trajectory_controller:
   joints: {
     type: string_array,
     default_value: [],
@@ -16,7 +16,7 @@ joint_trajectory_controller:
     validation: {
       unique<>: null,
       subset_of<>: [["position", "velocity", "effort",]],
-      "joint_trajectory_controller::command_interface_type_combinations": null,
+      "joint_forward_trajectory_controller::command_interface_type_combinations": null,
     }
   }
   allow_partial_joints_goal: {

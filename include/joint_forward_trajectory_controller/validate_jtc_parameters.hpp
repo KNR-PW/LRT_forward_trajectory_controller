@@ -23,7 +23,7 @@
 #include "rsl/algorithm.hpp"
 #include "tl_expected/expected.hpp"
 
-namespace joint_trajectory_controller
+namespace joint_forward_trajectory_controller
 {
 tl::expected<void, std::string> command_interface_type_combinations(
   rclcpp::Parameter const & parameter)
@@ -55,6 +55,6 @@ tl::expected<void, std::string> command_interface_type_combinations(
 }
 
 
-}  // namespace joint_trajectory_controller
+}  // namespace joint_forward_trajectory_controller
 
 #endif  // JOINT_TRAJECTORY_CONTROLLER__VALIDATE_JTC_PARAMETERS_HPP_

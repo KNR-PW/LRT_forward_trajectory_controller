@@ -24,7 +24,7 @@
 #include "gmock/gmock.h"
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
-#include "joint_trajectory_controller/joint_trajectory_controller.hpp"
+#include "joint_forward_trajectory_controller/joint_forward_trajectory_controller.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
 
 namespace
@@ -48,16 +48,16 @@ const double stopped_velocity_tolerance = 0.1;
 namespace test_trajectory_controllers
 {
 class TestableJointTrajectoryController
-: public joint_trajectory_controller::JointTrajectoryController
+: public joint_forward_trajectory_controller::JointTrajectoryController
 {
 public:
-  using joint_trajectory_controller::JointTrajectoryController::JointTrajectoryController;
-  using joint_trajectory_controller::JointTrajectoryController::validate_trajectory_msg;
+  using joint_forward_trajectory_controller::JointTrajectoryController::JointTrajectoryController;
+  using joint_forward_trajectory_controller::JointTrajectoryController::validate_trajectory_msg;
 
   controller_interface::CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override
   {
-    auto ret = joint_trajectory_controller::JointTrajectoryController::on_configure(previous_state);
+    auto ret = joint_forward_trajectory_controller::JointTrajectoryController::on_configure(previous_state);
     return ret;
   }
 
@@ -81,11 +81,6 @@ public:
   void set_joint_names(const std::vector<std::string> & joint_names)
   {
     params_.joints = joint_names;
-  }
-
-  void set_command_joint_names(const std::vector<std::string> & command_joint_names)
-  {
-    command_joint_names_ = command_joint_names;
   }
 
   void set_command_interfaces(const std::vector<std::string> & command_interfaces)
@@ -141,7 +136,7 @@ public:
 
   virtual void SetUp()
   {
-    controller_name_ = "test_joint_trajectory_controller";
+    controller_name_ = "test_joint_forward_trajectory_controller";
 
     joint_names_ = {"joint1", "joint2", "joint3"};
     command_joint_names_ = {
@@ -157,7 +152,7 @@ public:
 
     node_ = std::make_shared<rclcpp::Node>("trajectory_publisher_");
     trajectory_publisher_ = node_->create_publisher<trajectory_msgs::msg::JointTrajectory>(
-      controller_name_ + "/joint_trajectory", rclcpp::SystemDefaultsQoS());
+      controller_name_ + "/joint_forward_trajectory", rclcpp::SystemDefaultsQoS());
   }
 
   void TearDown() override

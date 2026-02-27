@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "joint_trajectory_controller/trajectory.hpp"
+#include "joint_forward_trajectory_controller/trajectory.hpp"
 
 #include <memory>
 
@@ -22,21 +22,21 @@
 #include "rclcpp/time.hpp"
 #include "std_msgs/msg/header.hpp"
 
-namespace joint_trajectory_controller
+namespace joint_forward_trajectory_controller
 {
 Trajectory::Trajectory() : trajectory_start_time_(0) {}
 
-Trajectory::Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory)
-: trajectory_msg_(joint_trajectory),
-  trajectory_start_time_(static_cast<rclcpp::Time>(joint_trajectory->header.stamp))
+Trajectory::Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory)
+: trajectory_msg_(joint_forward_trajectory),
+  trajectory_start_time_(static_cast<rclcpp::Time>(joint_forward_trajectory->header.stamp))
 {
 }
 
 
-void Trajectory::update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory)
+void Trajectory::update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory)
 {
-  trajectory_msg_ = joint_trajectory;
-  trajectory_start_time_ = static_cast<rclcpp::Time>(joint_trajectory->header.stamp);
+  trajectory_msg_ = joint_forward_trajectory;
+  trajectory_start_time_ = static_cast<rclcpp::Time>(joint_forward_trajectory->header.stamp);
   sampled_already_ = false;
   last_sample_idx_ = 0;
 }
@@ -336,4 +336,4 @@ bool Trajectory::has_nontrivial_msg() const
   return has_trajectory_msg() && trajectory_msg_->points.size() > 1;
 }
 
-}  // namespace joint_trajectory_controller
+}  // namespace joint_forward_trajectory_controller
