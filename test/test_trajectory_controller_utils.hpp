@@ -47,17 +47,17 @@ const double stopped_velocity_tolerance = 0.1;
 
 namespace test_trajectory_controllers
 {
-class TestableJointTrajectoryController
-: public joint_forward_trajectory_controller::JointTrajectoryController
+class TestableJointForwardTrajectoryController
+: public joint_forward_trajectory_controller::JointForwardTrajectoryController
 {
 public:
-  using joint_forward_trajectory_controller::JointTrajectoryController::JointTrajectoryController;
-  using joint_forward_trajectory_controller::JointTrajectoryController::validate_trajectory_msg;
+  using joint_forward_trajectory_controller::JointForwardTrajectoryController::JointForwardTrajectoryController;
+  using joint_forward_trajectory_controller::JointForwardTrajectoryController::validate_trajectory_msg;
 
   controller_interface::CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override
   {
-    auto ret = joint_forward_trajectory_controller::JointTrajectoryController::on_configure(previous_state);
+    auto ret = joint_forward_trajectory_controller::JointForwardTrajectoryController::on_configure(previous_state);
     return ret;
   }
 
@@ -142,10 +142,7 @@ public:
     command_joint_names_ = {
       "following_controller/joint1", "following_controller/joint2", "following_controller/joint3"};
     joint_pos_.resize(joint_names_.size(), 0.0);
-    joint_state_pos_.resize(joint_names_.size(), 0.0);
     joint_vel_.resize(joint_names_.size(), 0.0);
-    joint_state_vel_.resize(joint_names_.size(), 0.0);
-    joint_state_eff_.resize(joint_names_.size(), 0.0);
     joint_eff_.resize(joint_names_.size(), 0.0);
     // Default interface values - they will be overwritten by parameterized tests
     command_interface_types_ = {"position"};
@@ -175,7 +172,7 @@ public:
   controller_interface::return_type SetUpTrajectoryControllerLocal(
     const std::vector<rclcpp::Parameter> & parameters = {})
   {
-    traj_controller_ = std::make_shared<TestableJointTrajectoryController>();
+    traj_controller_ = std::make_shared<TestableJointForwardTrajectoryController>();
 
     auto node_options = rclcpp::NodeOptions();
     std::vector<rclcpp::Parameter> parameter_overrides;
@@ -245,7 +242,6 @@ public:
     const std::vector<double> initial_eff_joints = INITIAL_EFF_JOINTS)
   {
     std::vector<hardware_interface::LoanedCommandInterface> cmd_interfaces;
-    std::vector<hardware_interface::LoanedStateInterface> state_interfaces;
     pos_cmd_interfaces_.reserve(joint_names_.size());
     vel_cmd_interfaces_.reserve(joint_names_.size());
     eff_cmd_interfaces_.reserve(joint_names_.size());
@@ -271,7 +267,7 @@ public:
       cmd_interfaces.back().set_value(initial_eff_joints[i]);
     }
 
-    traj_controller_->assign_interfaces(std::move(cmd_interfaces), std::move(state_interfaces));
+    traj_controller_->assign_interfaces(std::move(cmd_interfaces),{});
     return traj_controller_->get_node()->activate();
   }
 
@@ -571,16 +567,13 @@ public:
   rclcpp::Node::SharedPtr node_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr trajectory_publisher_;
 
-  std::shared_ptr<TestableJointTrajectoryController> traj_controller_;
+  std::shared_ptr<TestableJointForwardTrajectoryController> traj_controller_;
   mutable std::mutex state_mutex_;
   mutable std::mutex state_legacy_mutex_;
 
   std::vector<double> joint_pos_;
   std::vector<double> joint_vel_;
   std::vector<double> joint_eff_;
-  std::vector<double> joint_state_pos_;
-  std::vector<double> joint_state_vel_;
-  std::vector<double> joint_state_eff_;
   std::vector<hardware_interface::CommandInterface> pos_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> vel_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> eff_cmd_interfaces_;

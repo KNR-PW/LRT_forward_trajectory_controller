@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef JOINT_TRAJECTORY_CONTROLLER__JOINT_TRAJECTORY_CONTROLLER_HPP_
-#define JOINT_TRAJECTORY_CONTROLLER__JOINT_TRAJECTORY_CONTROLLER_HPP_
+#ifndef JOINT_FORWARD_TRAJECTORY_CONTROLLER__JOINT_FORWARD_TRAJECTORY_CONTROLLER_HPP_
+#define JOINT_FORWARD_TRAJECTORY_CONTROLLER__JOINT_FORWARD_TRAJECTORY_CONTROLLER_HPP_
 
 #include <atomic>
 #include <chrono>
@@ -50,42 +50,42 @@ using namespace std::chrono_literals;  // NOLINT
 namespace joint_forward_trajectory_controller
 {
 
-class JointTrajectoryController : public controller_interface::ControllerInterface
+class JointForwardTrajectoryController : public controller_interface::ControllerInterface
 {
 public:
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
-  JointTrajectoryController();
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
+  JointForwardTrajectoryController();
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::InterfaceConfiguration command_interface_configuration() const override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::InterfaceConfiguration state_interface_configuration() const override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::return_type update(
     const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_init() override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_activate(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_deactivate(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_cleanup(
     const rclcpp_lifecycle::State & previous_state) override;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   controller_interface::CallbackReturn on_error(
     const rclcpp_lifecycle::State & previous_state) override;
 
@@ -155,58 +155,58 @@ protected:
   rclcpp::Duration action_monitor_period_ = rclcpp::Duration(50ms);
 
   // callback for topic interface
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   void topic_callback(const std::shared_ptr<trajectory_msgs::msg::JointTrajectory> msg);
 
   // callbacks for action_server_
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   rclcpp_action::GoalResponse goal_received_callback(
     const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const FollowJTrajAction::Goal> goal);
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   rclcpp_action::CancelResponse goal_cancelled_callback(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<FollowJTrajAction>> goal_handle);
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   void goal_accepted_callback(
     std::shared_ptr<rclcpp_action::ServerGoalHandle<FollowJTrajAction>> goal_handle);
 
   // fill trajectory_msg so it matches joints controlled by this controller
   // positions set to current position, velocities, accelerations and efforts to 0.0
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   void fill_partial_goal(
     std::shared_ptr<trajectory_msgs::msg::JointTrajectory> trajectory_msg) const;
   // sorts the joints of the incoming message to our local order
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   void sort_to_local_joint_order(
     std::shared_ptr<trajectory_msgs::msg::JointTrajectory> trajectory_msg);
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   bool validate_trajectory_msg(const trajectory_msgs::msg::JointTrajectory & trajectory) const;
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   void add_new_trajectory_msg(
     const std::shared_ptr<trajectory_msgs::msg::JointTrajectory> & traj_msg);
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   bool validate_trajectory_point_field(
     size_t joint_names_size, const std::vector<double> & vector_field,
     const std::string & string_for_vector_field, size_t i, bool allow_empty) const;
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   void preempt_active_goal();
 
   /** @brief set the current position with zero velocity and acceleration as new command
    */
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   std::shared_ptr<trajectory_msgs::msg::JointTrajectory> set_hold_position();
 
   /** @brief set last trajectory point to be repeated at success
    *
    * no matter if it has nonzero velocity or acceleration
    */
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   std::shared_ptr<trajectory_msgs::msg::JointTrajectory> set_success_trajectory_point();
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   bool reset();
 
-  JOINT_TRAJECTORY_CONTROLLER_PUBLIC
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   bool has_active_trajectory() const;
 
   using JointTrajectoryPoint = trajectory_msgs::msg::JointTrajectoryPoint;
@@ -227,4 +227,4 @@ private:
 
 }  // namespace joint_forward_trajectory_controller
 
-#endif  // JOINT_TRAJECTORY_CONTROLLER__JOINT_TRAJECTORY_CONTROLLER_HPP_
+#endif  // JOINT_FORWARD_TRAJECTORY_CONTROLLER__JOINTFORWARD__TRAJECTORY_CONTROLLER_HPP_

@@ -11,7 +11,7 @@ Usage:
     python3 trajectoryVisualizer.py [log_file]
     python3 trajectoryVisualizer.py log.txt --style doc --joint 0
     python3 trajectoryVisualizer.py log.txt --style all --save output
-    python3 trajectoryVisualizer.py --save ../../../log/latest_test/joint_trajectory_controller/stdout.log
+    python3 trajectoryVisualizer.py --save ../../../log/latest_test/joint_forward_trajectory_controller/stdout.log
 """
 
 import sys

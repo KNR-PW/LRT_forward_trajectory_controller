@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef JOINT_TRAJECTORY_CONTROLLER__VALIDATE_JTC_PARAMETERS_HPP_
-#define JOINT_TRAJECTORY_CONTROLLER__VALIDATE_JTC_PARAMETERS_HPP_
+#ifndef JOINT_FORWARD_TRAJECTORY_CONTROLLER__VALIDATE_JTC_PARAMETERS_HPP_
+#define JOINT_FORWARD_TRAJECTORY_CONTROLLER__VALIDATE_JTC_PARAMETERS_HPP_
 
 #include <string>
 #include <vector>
@@ -57,4 +57,4 @@ tl::expected<void, std::string> command_interface_type_combinations(
 
 }  // namespace joint_forward_trajectory_controller
 
-#endif  // JOINT_TRAJECTORY_CONTROLLER__VALIDATE_JTC_PARAMETERS_HPP_
+#endif  // JOINT_FORWARD_TRAJECTORY_CONTROLLER__VALIDATE_JTC_PARAMETERS_HPP_

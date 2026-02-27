@@ -39,12 +39,12 @@
 
 namespace joint_forward_trajectory_controller
 {
-JointTrajectoryController::JointTrajectoryController()
+JointForwardTrajectoryController::JointForwardTrajectoryController()
 : controller_interface::ControllerInterface(), dof_(0)
 {
 }
 
-controller_interface::CallbackReturn JointTrajectoryController::on_init()
+controller_interface::CallbackReturn JointForwardTrajectoryController::on_init()
 {
   try
   {
@@ -74,7 +74,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_init()
 }
 
 controller_interface::InterfaceConfiguration
-JointTrajectoryController::command_interface_configuration() const
+JointForwardTrajectoryController::command_interface_configuration() const
 {
   controller_interface::InterfaceConfiguration conf;
   conf.type = controller_interface::interface_configuration_type::INDIVIDUAL;
@@ -99,7 +99,7 @@ JointTrajectoryController::command_interface_configuration() const
 }
 
 controller_interface::InterfaceConfiguration
-JointTrajectoryController::state_interface_configuration() const
+JointForwardTrajectoryController::state_interface_configuration() const
 {
 	controller_interface::InterfaceConfiguration conf;
 	conf.type = controller_interface::interface_configuration_type::NONE;
@@ -107,7 +107,7 @@ JointTrajectoryController::state_interface_configuration() const
 }
 
 
-controller_interface::return_type JointTrajectoryController::update(
+controller_interface::return_type JointForwardTrajectoryController::update(
   const rclcpp::Time & time, const rclcpp::Duration & period)
 {
   if (get_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE)
@@ -241,7 +241,7 @@ controller_interface::return_type JointTrajectoryController::update(
   return controller_interface::return_type::OK;
 }
 
-void JointTrajectoryController::query_state_service(
+void JointForwardTrajectoryController::query_state_service(
   const std::shared_ptr<control_msgs::srv::QueryTrajectoryState::Request> request,
   std::shared_ptr<control_msgs::srv::QueryTrajectoryState::Response> response)
 {
@@ -287,7 +287,7 @@ void JointTrajectoryController::query_state_service(
   // response->effort = state_requested.effort;
 }
 
-controller_interface::CallbackReturn JointTrajectoryController::on_configure(
+controller_interface::CallbackReturn JointForwardTrajectoryController::on_configure(
   const rclcpp_lifecycle::State &)
 {
   auto logger = get_node()->get_logger();
@@ -402,7 +402,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
   joint_command_subscriber_ =
     get_node()->create_subscription<trajectory_msgs::msg::JointTrajectory>(
       "~/joint_forward_trajectory", rclcpp::SystemDefaultsQoS(),
-      std::bind(&JointTrajectoryController::topic_callback, this, std::placeholders::_1));
+      std::bind(&JointForwardTrajectoryController::topic_callback, this, std::placeholders::_1));
 
   // action server configuration
   if (params_.allow_partial_joints_goal)
@@ -419,21 +419,21 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     get_node()->get_node_base_interface(), get_node()->get_node_clock_interface(),
     get_node()->get_node_logging_interface(), get_node()->get_node_waitables_interface(),
     std::string(get_node()->get_name()) + "/follow_joint_forward_trajectory",
-    std::bind(&JointTrajectoryController::goal_received_callback, this, _1, _2),
-    std::bind(&JointTrajectoryController::goal_cancelled_callback, this, _1),
-    std::bind(&JointTrajectoryController::goal_accepted_callback, this, _1));
+    std::bind(&JointForwardTrajectoryController::goal_received_callback, this, _1, _2),
+    std::bind(&JointForwardTrajectoryController::goal_cancelled_callback, this, _1),
+    std::bind(&JointForwardTrajectoryController::goal_accepted_callback, this, _1));
 
   resize_joint_forward_trajectory_point_command(state_desired_, dof_);
   resize_joint_forward_trajectory_point_command(last_commanded_state_, dof_);
 
   query_state_srv_ = get_node()->create_service<control_msgs::srv::QueryTrajectoryState>(
     std::string(get_node()->get_name()) + "/query_state",
-    std::bind(&JointTrajectoryController::query_state_service, this, _1, _2));
+    std::bind(&JointForwardTrajectoryController::query_state_service, this, _1, _2));
 
   return CallbackReturn::SUCCESS;
 }
 
-controller_interface::CallbackReturn JointTrajectoryController::on_activate(
+controller_interface::CallbackReturn JointForwardTrajectoryController::on_activate(
   const rclcpp_lifecycle::State &)
 {
   auto logger = get_node()->get_logger();
@@ -486,7 +486,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
   return CallbackReturn::SUCCESS;
 }
 
-controller_interface::CallbackReturn JointTrajectoryController::on_deactivate(
+controller_interface::CallbackReturn JointForwardTrajectoryController::on_deactivate(
   const rclcpp_lifecycle::State &)
 {
   const auto active_goal = *rt_active_goal_.readFromNonRT();
@@ -532,13 +532,13 @@ controller_interface::CallbackReturn JointTrajectoryController::on_deactivate(
   return CallbackReturn::SUCCESS;
 }
 
-controller_interface::CallbackReturn JointTrajectoryController::on_cleanup(
+controller_interface::CallbackReturn JointForwardTrajectoryController::on_cleanup(
   const rclcpp_lifecycle::State &)
 {
   return CallbackReturn::SUCCESS;
 }
 
-controller_interface::CallbackReturn JointTrajectoryController::on_error(
+controller_interface::CallbackReturn JointForwardTrajectoryController::on_error(
   const rclcpp_lifecycle::State &)
 {
   if (!reset())
@@ -548,7 +548,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_error(
   return CallbackReturn::SUCCESS;
 }
 
-bool JointTrajectoryController::reset()
+bool JointForwardTrajectoryController::reset()
 {
   subscriber_is_active_ = false;
   joint_command_subscriber_.reset();
@@ -558,7 +558,7 @@ bool JointTrajectoryController::reset()
   return true;
 }
 
-void JointTrajectoryController::topic_callback(
+void JointForwardTrajectoryController::topic_callback(
   const std::shared_ptr<trajectory_msgs::msg::JointTrajectory> msg)
 {
   if (!validate_trajectory_msg(*msg))
@@ -574,7 +574,7 @@ void JointTrajectoryController::topic_callback(
   }
 };
 
-rclcpp_action::GoalResponse JointTrajectoryController::goal_received_callback(
+rclcpp_action::GoalResponse JointForwardTrajectoryController::goal_received_callback(
   const rclcpp_action::GoalUUID &, std::shared_ptr<const FollowJTrajAction::Goal> goal)
 {
   RCLCPP_INFO(get_node()->get_logger(), "Received new action goal");
@@ -596,7 +596,7 @@ rclcpp_action::GoalResponse JointTrajectoryController::goal_received_callback(
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
-rclcpp_action::CancelResponse JointTrajectoryController::goal_cancelled_callback(
+rclcpp_action::CancelResponse JointForwardTrajectoryController::goal_cancelled_callback(
   const std::shared_ptr<rclcpp_action::ServerGoalHandle<FollowJTrajAction>> goal_handle)
 {
   RCLCPP_INFO(get_node()->get_logger(), "Got request to cancel goal");
@@ -620,7 +620,7 @@ rclcpp_action::CancelResponse JointTrajectoryController::goal_cancelled_callback
   return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void JointTrajectoryController::goal_accepted_callback(
+void JointForwardTrajectoryController::goal_accepted_callback(
   std::shared_ptr<rclcpp_action::ServerGoalHandle<FollowJTrajAction>> goal_handle)
 {
   // mark a pending goal
@@ -651,7 +651,7 @@ void JointTrajectoryController::goal_accepted_callback(
     std::bind(&RealtimeGoalHandle::runNonRealtime, rt_goal));
 }
 
-void JointTrajectoryController::fill_partial_goal(
+void JointForwardTrajectoryController::fill_partial_goal(
   std::shared_ptr<trajectory_msgs::msg::JointTrajectory> trajectory_msg) const
 {
   // joint names in the goal are a subset of existing joints, as checked in goal_callback
@@ -702,7 +702,7 @@ void JointTrajectoryController::fill_partial_goal(
   }
 }
 
-void JointTrajectoryController::sort_to_local_joint_order(
+void JointForwardTrajectoryController::sort_to_local_joint_order(
   std::shared_ptr<trajectory_msgs::msg::JointTrajectory> trajectory_msg)
 {
   // rearrange all points in the trajectory message based on mapping
@@ -751,7 +751,7 @@ void JointTrajectoryController::sort_to_local_joint_order(
   }
 }
 
-bool JointTrajectoryController::validate_trajectory_point_field(
+bool JointForwardTrajectoryController::validate_trajectory_point_field(
   size_t joint_names_size, const std::vector<double> & vector_field,
   const std::string & string_for_vector_field, size_t i, bool allow_empty) const
 {
@@ -770,7 +770,7 @@ bool JointTrajectoryController::validate_trajectory_point_field(
   return true;
 }
 
-bool JointTrajectoryController::validate_trajectory_msg(
+bool JointForwardTrajectoryController::validate_trajectory_msg(
   const trajectory_msgs::msg::JointTrajectory & trajectory) const
 {
   // If partial joints goals are not allowed, goal should specify all controller joints
@@ -899,13 +899,13 @@ bool JointTrajectoryController::validate_trajectory_msg(
   return true;
 }
 
-void JointTrajectoryController::add_new_trajectory_msg(
+void JointForwardTrajectoryController::add_new_trajectory_msg(
   const std::shared_ptr<trajectory_msgs::msg::JointTrajectory> & traj_msg)
 {
   traj_msg_external_point_ptr_.writeFromNonRT(traj_msg);
 }
 
-void JointTrajectoryController::preempt_active_goal()
+void JointForwardTrajectoryController::preempt_active_goal()
 {
   const auto active_goal = *rt_active_goal_.readFromNonRT();
   if (active_goal)
@@ -919,7 +919,7 @@ void JointTrajectoryController::preempt_active_goal()
 }
 
 std::shared_ptr<trajectory_msgs::msg::JointTrajectory>
-JointTrajectoryController::set_hold_position()
+JointForwardTrajectoryController::set_hold_position()
 {
   // Command to stay at current position
   hold_position_msg_ptr_->points[0].positions = last_commanded_state_.positions;
@@ -930,7 +930,7 @@ JointTrajectoryController::set_hold_position()
 }
 
 std::shared_ptr<trajectory_msgs::msg::JointTrajectory>
-JointTrajectoryController::set_success_trajectory_point()
+JointForwardTrajectoryController::set_success_trajectory_point()
 {
   // set last command to be repeated at success, no matter if it has nonzero velocity or
   // effort
@@ -942,14 +942,14 @@ JointTrajectoryController::set_success_trajectory_point()
   return hold_position_msg_ptr_;
 }
 
-bool JointTrajectoryController::contains_interface_type(
+bool JointForwardTrajectoryController::contains_interface_type(
   const std::vector<std::string> & interface_type_list, const std::string & interface_type)
 {
   return std::find(interface_type_list.begin(), interface_type_list.end(), interface_type) !=
          interface_type_list.end();
 }
 
-void JointTrajectoryController::resize_joint_forward_trajectory_point_command(
+void JointForwardTrajectoryController::resize_joint_forward_trajectory_point_command(
   trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size)
 {
   if (has_position_command_interface_)
@@ -966,12 +966,12 @@ void JointTrajectoryController::resize_joint_forward_trajectory_point_command(
   }
 }
 
-bool JointTrajectoryController::has_active_trajectory() const
+bool JointForwardTrajectoryController::has_active_trajectory() const
 {
   return traj_external_point_ptr_ != nullptr && traj_external_point_ptr_->has_trajectory_msg();
 }
 
-void JointTrajectoryController::init_hold_position_msg()
+void JointForwardTrajectoryController::init_hold_position_msg()
 {
   hold_position_msg_ptr_ = std::make_shared<trajectory_msgs::msg::JointTrajectory>();
   hold_position_msg_ptr_->header.stamp =
@@ -992,4 +992,4 @@ void JointTrajectoryController::init_hold_position_msg()
 #include "pluginlib/class_list_macros.hpp"
 
 PLUGINLIB_EXPORT_CLASS(
-  joint_forward_trajectory_controller::JointTrajectoryController, controller_interface::ControllerInterface)
+  joint_forward_trajectory_controller::JointForwardTrajectoryController, controller_interface::ControllerInterface)
