@@ -88,7 +88,7 @@ JointTrajectoryController::command_interface_configuration() const
     std::exit(EXIT_FAILURE);
   }
   conf.names.reserve(dof_ * params_.command_interfaces.size());
-  for (const auto & joint_name : command_joint_names_)
+  for (const auto & joint_name : params_.joints)
   {
     for (const auto & interface_type : params_.command_interfaces)
     {
@@ -319,21 +319,6 @@ controller_interface::CallbackReturn JointTrajectoryController::on_configure(
     RCLCPP_WARN(logger, "'joints' parameter is empty.");
   }
 
-  command_joint_names_ = params_.command_joints;
-
-  if (command_joint_names_.empty())
-  {
-    command_joint_names_ = params_.joints;
-    RCLCPP_INFO(
-      logger, "No specific joint names are used for command interfaces. Using 'joints' parameter.");
-  }
-  else if (command_joint_names_.size() != params_.joints.size())
-  {
-    RCLCPP_ERROR(
-      logger, "'command_joints' parameter has to have the same size as 'joints' parameter.");
-    return CallbackReturn::FAILURE;
-  }
-
   if (params_.command_interfaces.empty())
   {
     RCLCPP_ERROR(logger, "'command_interfaces' parameter is empty.");
@@ -467,7 +452,7 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
       std::find(allowed_interface_types_.begin(), allowed_interface_types_.end(), interface);
     auto index = static_cast<size_t>(std::distance(allowed_interface_types_.begin(), it));
     if (!controller_interface::get_ordered_interfaces(
-          command_interfaces_, command_joint_names_, interface, joint_command_interface_[index]))
+          command_interfaces_, params_.joints, interface, joint_command_interface_[index]))
     {
       RCLCPP_ERROR(
         logger, "Expected %zu '%s' command interfaces, got %zu.", dof_, interface.c_str(),
