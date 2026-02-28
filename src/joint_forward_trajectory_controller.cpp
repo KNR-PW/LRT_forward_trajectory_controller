@@ -987,6 +987,9 @@ void JointForwardTrajectoryController::init_hold_position_msg()
     // add velocity, so that trajectory sampling returns velocity points in any case
     hold_position_msg_ptr_->points[0].velocities.resize(dof_, 0.0);
   }
+  if(has_effort_command_interface_){
+	  hold_position_msg_ptr_->points[0].effort.resize(dof_,0.0);
+  }
 }
 
 }  // namespace joint_forward_trajectory_controller
