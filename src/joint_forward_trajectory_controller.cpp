@@ -418,7 +418,7 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_config
   action_server_ = rclcpp_action::create_server<FollowJTrajAction>(
     get_node()->get_node_base_interface(), get_node()->get_node_clock_interface(),
     get_node()->get_node_logging_interface(), get_node()->get_node_waitables_interface(),
-    std::string(get_node()->get_name()) + "/follow_joint_forward_trajectory",
+    std::string(get_node()->get_name()) + "/follow_joint_trajectory",
     std::bind(&JointForwardTrajectoryController::goal_received_callback, this, _1, _2),
     std::bind(&JointForwardTrajectoryController::goal_cancelled_callback, this, _1),
     std::bind(&JointForwardTrajectoryController::goal_accepted_callback, this, _1));
