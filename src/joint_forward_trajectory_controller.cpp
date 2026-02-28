@@ -220,20 +220,22 @@ controller_interface::return_type JointForwardTrajectoryController::update(
         feedback->desired = state_desired_;
         active_goal->setFeedback(feedback);
 
-        // check abort
-		auto result = std::make_shared<FollowJTrajAction::Result>();
-		result->set__error_code(FollowJTrajAction::Result::SUCCESSFUL);
-		result->set__error_string("Goal successfully reached!");
-		active_goal->setSucceeded(result);
-		// TODO(matthew-reynolds): Need a lock-free write here
-		// See https://github.com/ros-controls/ros2_controllers/issues/168
-		rt_active_goal_.writeFromNonRT(RealtimeGoalHandlePtr());
-		rt_has_pending_goal_ = false;
+		if(!before_last_point && time_difference >=0.0){
+			// check abort
+			auto result = std::make_shared<FollowJTrajAction::Result>();
+			result->set__error_code(FollowJTrajAction::Result::SUCCESSFUL);
+			result->set__error_string("Goal successfully reached!");
+			active_goal->setSucceeded(result);
+			// TODO(matthew-reynolds): Need a lock-free write here
+			// See https://github.com/ros-controls/ros2_controllers/issues/168
+			rt_active_goal_.writeFromNonRT(RealtimeGoalHandlePtr());
+			rt_has_pending_goal_ = false;
 
-		RCLCPP_INFO(logger, "Goal reached, success!");
+			RCLCPP_INFO(logger, "Goal reached, success!");
 
-		traj_msg_external_point_ptr_.reset();
-		traj_msg_external_point_ptr_.initRT(set_success_trajectory_point());
+			traj_msg_external_point_ptr_.reset();
+			traj_msg_external_point_ptr_.initRT(set_success_trajectory_point());
+		}
 	  }
     }
   }
