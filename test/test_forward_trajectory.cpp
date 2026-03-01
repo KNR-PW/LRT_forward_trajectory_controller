@@ -790,3 +790,79 @@ TEST_F(TrajectoryInterpolationTest, input_pos_effort_no_vel_msg)
 
   executor.cancel();
 }
+//=============================================================================
+// TEST 10: Dynamic Wave Trajectory (Position, Velocity, Effort)
+// Matches the Gazebo 12-joint Dynamic Wave command
+//=============================================================================
+TEST_F(TrajectoryInterpolationTest, dynamic_wave_trajectory)
+{
+  command_interface_types_ = {"position", "velocity", "effort"};
+  test_config_name_ = "DYNAMIC_WAVE";
+  interpolation_method_ = "splines";
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  std::vector<rclcpp::Parameter> params;
+  params.emplace_back("open_loop_control", true);
+
+  SetUpAndActivateTrajectoryController(executor, params);
+
+  // Czasy odpowiadające komendzie z konsoli (0s, 2s, 4s, 6s)
+  input_times_ = {0.0, 2.0, 4.0, 6.0};
+
+  // Pozycje przełożone z 12 stawów na 3 (np. Trunk, Hip, Knee)
+  input_positions_ = {
+    { 0.0,  0.0,  0.0},
+    { 0.5, -0.8,  1.5},
+    {-0.5,  0.8, -1.5},
+    { 0.0,  0.0,  0.0}
+  };
+
+  // Precyzyjne zadanie prędkości w węzłach (zgodnie z komendą)
+  input_velocities_ = {
+    { 0.0,  0.0,  0.0},
+    { 0.2, -0.4,  0.8},
+    {-0.2,  0.4, -0.8},
+    { 0.0,  0.0,  0.0}
+  };
+
+  // Zadane efforty w węzłach (zgodnie z komendą)
+  input_efforts_ = {
+    { 0.0,  0.0,  0.0},
+    { 2.0, -4.0,  6.0},
+    {-2.0,  4.0, -6.0},
+    { 0.0,  0.0,  0.0}
+  };
+
+  trajectory_msgs::msg::JointTrajectory traj_msg;
+  // W środowisku testowym używamy domyślnego mocka 3-stawowego (nie nadpisujemy nazw)
+  traj_msg.joint_names = joint_names_;
+  traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+  for (size_t i = 0; i < input_positions_.size(); ++i)
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions = input_positions_[i];
+    point.velocities = input_velocities_[i];
+    point.effort = input_efforts_[i];
+    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+    traj_msg.points.push_back(point);
+  }
+
+  trajectory_publisher_->publish(traj_msg);
+  traj_controller_->wait_for_trajectory(executor);
+
+  print_log_header();
+  print_input_trajectory();
+
+  // Symulacja trwa 6 sekund. Pobieramy logi przez 6.5 sekundy (130 próbek daje próbkowanie co 0.05s).
+  run_trajectory_with_logging(6.5, 130);
+  print_sampled_trajectory();
+  print_log_footer();
+
+  // Po 6.5s (czyli w stanie spoczynku po trajektorii) stawy powinny wrócić do punktu zero z t=6s
+  EXPECT_NEAR(0.0, logged_data_.back().command_positions[0], EPS);
+  EXPECT_NEAR(0.0, logged_data_.back().command_positions[1], EPS);
+  EXPECT_NEAR(0.0, logged_data_.back().command_positions[2], EPS);
+
+  executor.cancel();
+}
