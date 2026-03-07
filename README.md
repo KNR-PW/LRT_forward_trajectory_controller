@@ -1,6 +1,8 @@
 ## Introduction
 
-This project is based on th [joint_trajctory_controller](https://github.com/ros-controls/ros2_controllers/tree/humble/joint_trajectory_controller). It provides a `ros2_control` `ControllerInterface` used as a simplified `joint_forward_trajectory_controller` for trajectory interpolation. It is designed as a controller for executing joint-space trajectories on a group of joints.
+
+
+This project is based on the [joint_trajectory_controller](https://github.com/ros-controls/ros2_controllers/tree/humble/joint_trajectory_controller). It provides a `ros2_control` `ControllerInterface` used as a simplified `joint_forward_trajectory_controller` for trajectory interpolation. It is designed as a controller for executing joint-space trajectories on a group of joints.
 
 
 
@@ -52,9 +54,9 @@ Polynomial splines are used to compute smooth intermediate state based on bounda
 
 Used when only positions are provided in the trajectory message. It computes intermediate positions linearly and provides a constant velocity:
 
-$p(t) = a_0 + a_1 t$
+$\boldsymbol{p}(t) = \boldsymbol{a}_0 + \boldsymbol{a}_1 t$
 
-$v(t) = a_1$
+$\boldsymbol{v}(t) = \boldsymbol{a}_1$
 
 
 
@@ -62,17 +64,17 @@ $v(t) = a_1$
 
 Used specifically when *both positions and velocities* are provided in the trajectory message. A third-degree polynomial ensures smooth position and continuous velocity between trajectory waypoints:
 
-$p(t) = a_0 + a_1 t + a_2 t^2 + a_3 t^3$
+$\boldsymbol{p}(t) = \boldsymbol{a}_0 + \boldsymbol{a}_1 t + \boldsymbol{a}_2 t^2 + \boldsymbol{a}_3 t^3$
 
-$v(t) = a_1 + 2 a_2 t + 3 a_3 t^2$
+$\boldsymbol{v}(t) = \boldsymbol{a}_1 + 2 \boldsymbol{a}_2 t + 3 \boldsymbol{a}_3 t^2$
 
 
 
-where:
+*Where:*
 
-- $p(t)$ and $v(t)$ are position and velocity at time $t$.
+- $\boldsymbol{p}(t)$ and $\boldsymbol{v}(t)$ are position and velocity at time $t$.
 
-- $a_n$ are the polynomial coefficients derived from the start and end points of the trajectory segment.
+- $\boldsymbol{a}_n$ are the polynomial coefficients derived from the start and end points of the trajectory segment.
 
 
 
@@ -129,51 +131,29 @@ colcon build --packages-select joint_forward_trajectory_controller
 
 
 ```yaml
-
 ...
-
 joint_forward_trajectory_controller:
-
-    type: joint_forward_trajectory_controller/JointForwardTrajectoryController
-
+   type:
+     joint_forward_trajectory_controller/JointForwardTrajectoryController
 ...
-
 joint_forward_trajectory_controller:
-
     ros__parameters:
-
         joints:
-
             - joint_1
-
             - joint_2
 
-
-
         command_interfaces:
-
             - position
-
             - velocity
-
             - effort
 
-
-
         allow_partial_joints_goal: false
-
         allow_integration_in_goal_trajectories: false
-
         action_monitor_rate: 20.0
-
         interpolation_method: "splines"
-
         allow_nonzero_velocity_at_trajectory_end: true
-
         cmd_timeout: 0.0    
-
 ...
-
 ```
 
 #### `joints` - joint names to control and listen to.
@@ -213,3 +193,5 @@ joint_forward_trajectory_controller:
 
 
 #### `cmd_timeout` - timeout after which the input command is considered stale. Timeout is counted from the end of the trajectory. If `0` , timeout is deactivated.
+
+"
