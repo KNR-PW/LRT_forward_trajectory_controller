@@ -193,5 +193,3 @@ joint_forward_trajectory_controller:
 
 
 #### `cmd_timeout` - timeout after which the input command is considered stale. Timeout is counted from the end of the trajectory. If `0` , timeout is deactivated.
-
-"
