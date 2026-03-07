@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "joint_trajectory_controller/trajectory.hpp"
+#include "joint_forward_trajectory_controller/trajectory.hpp"
 
 #include <memory>
 
@@ -22,82 +22,21 @@
 #include "rclcpp/time.hpp"
 #include "std_msgs/msg/header.hpp"
 
-namespace joint_trajectory_controller
+namespace joint_forward_trajectory_controller
 {
-Trajectory::Trajectory() : trajectory_start_time_(0), time_before_traj_msg_(0) {}
+Trajectory::Trajectory() : trajectory_start_time_(0) {}
 
-Trajectory::Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory)
-: trajectory_msg_(joint_trajectory),
-  trajectory_start_time_(static_cast<rclcpp::Time>(joint_trajectory->header.stamp))
+Trajectory::Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory)
+: trajectory_msg_(joint_forward_trajectory),
+  trajectory_start_time_(static_cast<rclcpp::Time>(joint_forward_trajectory->header.stamp))
 {
 }
 
-Trajectory::Trajectory(
-  const rclcpp::Time & current_time,
-  const trajectory_msgs::msg::JointTrajectoryPoint & current_point,
-  std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory)
-: trajectory_msg_(joint_trajectory),
-  trajectory_start_time_(static_cast<rclcpp::Time>(joint_trajectory->header.stamp))
+
+void Trajectory::update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory)
 {
-  set_point_before_trajectory_msg(current_time, current_point);
-  update(joint_trajectory);
-}
-
-void Trajectory::set_point_before_trajectory_msg(
-  const rclcpp::Time & current_time,
-  const trajectory_msgs::msg::JointTrajectoryPoint & current_point,
-  const std::vector<bool> & joints_angle_wraparound)
-{
-  time_before_traj_msg_ = current_time;
-  state_before_traj_msg_ = current_point;
-
-  // If the current state doesn't contain velocities / accelerations, but the first trajectory
-  // point does, initialize them to zero. Otherwise the segment going from the current state to the
-  // first trajectory point will use another degree of spline interpolation than the rest of the
-  // trajectory.
-  if (current_point.velocities.empty() && !trajectory_msg_->points[0].velocities.empty())
-  {
-    state_before_traj_msg_.velocities.resize(trajectory_msg_->points[0].velocities.size(), 0.0);
-  }
-  if (current_point.accelerations.empty() && !trajectory_msg_->points[0].accelerations.empty())
-  {
-    state_before_traj_msg_.accelerations.resize(
-      trajectory_msg_->points[0].accelerations.size(), 0.0);
-  }
-
-  // Compute offsets due to wrapping joints
-  wraparound_joint(
-    state_before_traj_msg_.positions, trajectory_msg_->points[0].positions,
-    joints_angle_wraparound);
-}
-
-void wraparound_joint(
-  std::vector<double> & current_position, const std::vector<double> next_position,
-  const std::vector<bool> & joints_angle_wraparound)
-{
-  double dist;
-  // joints_angle_wraparound is even empty, or has the same size as the number of joints
-  for (size_t i = 0; i < joints_angle_wraparound.size(); i++)
-  {
-    if (joints_angle_wraparound[i])
-    {
-      dist = angles::shortest_angular_distance(current_position[i], next_position[i]);
-
-      // Deal with singularity at M_PI shortest distance
-      if (std::abs(std::abs(dist) - M_PI) < 1e-9)
-      {
-        dist = next_position[i] > current_position[i] ? std::abs(dist) : -std::abs(dist);
-      }
-
-      current_position[i] = next_position[i] - dist;
-    }
-  }
-}
-
-void Trajectory::update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory)
-{
-  trajectory_msg_ = joint_trajectory;
-  trajectory_start_time_ = static_cast<rclcpp::Time>(joint_trajectory->header.stamp);
+  trajectory_msg_ = joint_forward_trajectory;
+  trajectory_start_time_ = static_cast<rclcpp::Time>(joint_forward_trajectory->header.stamp);
   sampled_already_ = false;
   last_sample_idx_ = 0;
 }
@@ -128,12 +67,6 @@ bool Trajectory::sample(
     sampled_already_ = true;
   }
 
-  // sampling before the current point
-  if (sample_time < time_before_traj_msg_)
-  {
-    return false;
-  }
-
   output_state = trajectory_msgs::msg::JointTrajectoryPoint();
   auto & first_point_in_msg = trajectory_msg_->points[0];
   const rclcpp::Time first_point_timestamp =
@@ -142,25 +75,11 @@ bool Trajectory::sample(
   // current time hasn't reached traj time of the first point in the msg yet
   if (sample_time < first_point_timestamp)
   {
-    // If interpolation is disabled, just forward the next waypoint
-    if (interpolation_method == interpolation_methods::InterpolationMethod::NONE)
-    {
-      output_state = state_before_traj_msg_;
-    }
-    else
-    {
-      // it changes points only if position and velocity do not exist, but their derivatives
-      deduce_from_derivatives(
-        state_before_traj_msg_, first_point_in_msg, state_before_traj_msg_.positions.size(),
-        (first_point_timestamp - time_before_traj_msg_).seconds());
+      output_state = first_point_in_msg;
 
-      interpolate_between_points(
-        time_before_traj_msg_, state_before_traj_msg_, first_point_timestamp, first_point_in_msg,
-        sample_time, output_state);
-    }
-    start_segment_itr = begin();  // no segments before the first
-    end_segment_itr = begin();
-    return true;
+		start_segment_itr = begin();  // no segments before the first
+		end_segment_itr = begin();
+		return true;
   }
 
   // time_from_start + trajectory time is the expected arrival time of trajectory
@@ -185,7 +104,7 @@ bool Trajectory::sample(
       {
         // it changes points only if position and velocity do not exist, but their derivatives
         deduce_from_derivatives(
-          point, next_point, state_before_traj_msg_.positions.size(), (t1 - t0).seconds());
+          point, next_point, point.positions.size(), (t1 - t0).seconds());
 
         interpolate_between_points(t0, point, t1, next_point, sample_time, output_state);
       }
@@ -238,23 +157,22 @@ void Trajectory::interpolate_between_points(
   };
 
   bool has_velocity = !state_a.velocities.empty() && !state_b.velocities.empty();
-  bool has_accel = !state_a.accelerations.empty() && !state_b.accelerations.empty();
   bool has_effort = !state_a.effort.empty() && !state_b.effort.empty();
   if (duration_so_far.seconds() < 0.0)
   {
     duration_so_far = rclcpp::Duration::from_seconds(0.0);
-    has_velocity = has_accel = has_effort=false;
+    has_velocity  = has_effort=false;
   }
   if (duration_so_far.seconds() > duration_btwn_points.seconds())
   {
     duration_so_far = duration_btwn_points;
-    has_velocity = has_accel = has_effort=false;
+    has_velocity  = has_effort=false;
   }
 
   double t[6];
   generate_powers(5, duration_so_far.seconds(), t);
 
-  if (!has_velocity && !has_accel)
+  if (!has_velocity)
   {
     // do linear interpolation
     for (size_t i = 0; i < dim; ++i)
@@ -273,7 +191,7 @@ void Trajectory::interpolate_between_points(
       output.velocities[i] = t[0] * coefficients[1];
     }
   }
-  else if (has_velocity && !has_accel)
+  else if (has_velocity)
   {
     // do cubic interpolation
     double T[4];
@@ -302,48 +220,6 @@ void Trajectory::interpolate_between_points(
       output.velocities[i] =
         t[0] * coefficients[1] + t[1] * 2.0 * coefficients[2] + t[2] * 3.0 * coefficients[3];
       output.accelerations[i] = t[0] * 2.0 * coefficients[2] + t[1] * 6.0 * coefficients[3];
-    }
-  }
-  else if (has_velocity && has_accel)
-  {
-    // do quintic interpolation
-    double T[6];
-    generate_powers(5, duration_btwn_points.seconds(), T);
-
-    for (size_t i = 0; i < dim; ++i)
-    {
-      double start_pos = state_a.positions[i];
-      double start_vel = state_a.velocities[i];
-      double start_acc = state_a.accelerations[i];
-      double end_pos = state_b.positions[i];
-      double end_vel = state_b.velocities[i];
-      double end_acc = state_b.accelerations[i];
-
-      double coefficients[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-      coefficients[0] = start_pos;
-      coefficients[1] = start_vel;
-      coefficients[2] = 0.5 * start_acc;
-      if (duration_btwn_points.seconds() != 0.0)
-      {
-        coefficients[3] = (-20.0 * start_pos + 20.0 * end_pos - 3.0 * start_acc * T[2] +
-                           end_acc * T[2] - 12.0 * start_vel * T[1] - 8.0 * end_vel * T[1]) /
-                          (2.0 * T[3]);
-        coefficients[4] = (30.0 * start_pos - 30.0 * end_pos + 3.0 * start_acc * T[2] -
-                           2.0 * end_acc * T[2] + 16.0 * start_vel * T[1] + 14.0 * end_vel * T[1]) /
-                          (2.0 * T[4]);
-        coefficients[5] = (-12.0 * start_pos + 12.0 * end_pos - start_acc * T[2] + end_acc * T[2] -
-                           6.0 * start_vel * T[1] - 6.0 * end_vel * T[1]) /
-                          (2.0 * T[5]);
-      }
-
-      output.positions[i] = t[0] * coefficients[0] + t[1] * coefficients[1] +
-                            t[2] * coefficients[2] + t[3] * coefficients[3] +
-                            t[4] * coefficients[4] + t[5] * coefficients[5];
-      output.velocities[i] = t[0] * coefficients[1] + t[1] * 2.0 * coefficients[2] +
-                             t[2] * 3.0 * coefficients[3] + t[3] * 4.0 * coefficients[4] +
-                             t[4] * 5.0 * coefficients[5];
-      output.accelerations[i] = t[0] * 2.0 * coefficients[2] + t[1] * 6.0 * coefficients[3] +
-                                t[2] * 12.0 * coefficients[4] + t[3] * 20.0 * coefficients[5];
     }
   }
   if(has_effort){
@@ -417,4 +293,4 @@ bool Trajectory::has_nontrivial_msg() const
   return has_trajectory_msg() && trajectory_msg_->points.size() > 1;
 }
 
-}  // namespace joint_trajectory_controller
+}  // namespace joint_forward_trajectory_controller

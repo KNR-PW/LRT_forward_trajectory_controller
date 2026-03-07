@@ -248,7 +248,7 @@ public:
   }
 
   void run_trajectory_with_logging(
-    rclcpp:: Executor & executor,
+ 
     double total_duration_sec,
     int num_samples)
   {
@@ -273,7 +273,6 @@ public:
 TEST_F(TrajectoryInterpolationTest, two_point_trajectory)
 {
   command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "TWO_POINT_SPLINE";
   interpolation_method_ = "splines";
 
@@ -313,7 +312,7 @@ TEST_F(TrajectoryInterpolationTest, two_point_trajectory)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 1.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -327,7 +326,6 @@ TEST_F(TrajectoryInterpolationTest, two_point_trajectory)
 TEST_F(TrajectoryInterpolationTest, three_point_with_velocities)
 {
   command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "THREE_POINT_WITH_VEL";
   interpolation_method_ = "splines";
 
@@ -369,7 +367,7 @@ TEST_F(TrajectoryInterpolationTest, three_point_with_velocities)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 1.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -382,7 +380,6 @@ TEST_F(TrajectoryInterpolationTest, three_point_with_velocities)
 TEST_F(TrajectoryInterpolationTest, trajectory_with_efforts)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "WITH_SPECIFIED_EFFORTS";
   interpolation_method_ = "splines";
 
@@ -436,7 +433,7 @@ TEST_F(TrajectoryInterpolationTest, trajectory_with_efforts)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.7, 120);
+  run_trajectory_with_logging( 1.7, 120);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -449,7 +446,6 @@ TEST_F(TrajectoryInterpolationTest, trajectory_with_efforts)
 TEST_F(TrajectoryInterpolationTest, multi_segment_full_spec)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "MULTI_SEGMENT_FULL";
   interpolation_method_ = "splines";
 
@@ -505,7 +501,7 @@ TEST_F(TrajectoryInterpolationTest, multi_segment_full_spec)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, 150);
+  run_trajectory_with_logging( 2.2, 150);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -518,7 +514,6 @@ TEST_F(TrajectoryInterpolationTest, multi_segment_full_spec)
 TEST_F(TrajectoryInterpolationTest, linear_interpolation)
 {
   command_interface_types_ = {"position"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "LINEAR_INTERPOLATION";
   interpolation_method_ = "linear";
 
@@ -551,7 +546,7 @@ TEST_F(TrajectoryInterpolationTest, linear_interpolation)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 1.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -564,7 +559,6 @@ TEST_F(TrajectoryInterpolationTest, linear_interpolation)
 TEST_F(TrajectoryInterpolationTest, s_curve_motion)
 {
   command_interface_types_ = {"position", "velocity"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "S_CURVE_MOTION";
   interpolation_method_ = "splines";
 
@@ -606,7 +600,7 @@ TEST_F(TrajectoryInterpolationTest, s_curve_motion)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 1.2, 120);
+  run_trajectory_with_logging( 1.2, 120);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -619,7 +613,6 @@ TEST_F(TrajectoryInterpolationTest, s_curve_motion)
 TEST_F(TrajectoryInterpolationTest, return_motion_with_effort)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "RETURN_MOTION_EFFORT";
   interpolation_method_ = "splines";
 
@@ -670,7 +663,7 @@ TEST_F(TrajectoryInterpolationTest, return_motion_with_effort)
 
   print_log_header();
   print_input_trajectory();
-  run_trajectory_with_logging(executor, 2.2, 150);
+  run_trajectory_with_logging( 2.2, 150);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -683,7 +676,6 @@ TEST_F(TrajectoryInterpolationTest, return_motion_with_effort)
 TEST_F(TrajectoryInterpolationTest, position_effort_command_only)
 {
   command_interface_types_ = {"position", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "POS_EFFORT_COMMAND_ONLY";
   interpolation_method_ = "splines";
 
@@ -730,7 +722,7 @@ TEST_F(TrajectoryInterpolationTest, position_effort_command_only)
   print_log_header();
   print_input_trajectory();
   // Symulacja trwa 2.2s. Próbka w połowie to 1.1s.
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 2.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
@@ -748,7 +740,6 @@ TEST_F(TrajectoryInterpolationTest, position_effort_command_only)
 TEST_F(TrajectoryInterpolationTest, input_pos_effort_no_vel_msg)
 {
   command_interface_types_ = {"position", "velocity", "effort"};
-  state_interface_types_ = {"position", "velocity", "effort"};
   test_config_name_ = "INPUT_POS_EFF_NO_VEL";
   interpolation_method_ = "splines"; // Powinno spaść do liniowej
 
@@ -789,13 +780,89 @@ TEST_F(TrajectoryInterpolationTest, input_pos_effort_no_vel_msg)
   print_log_header();
   print_input_trajectory();
   // Symulacja trwa 2.2s. Próbka w połowie to 1.1s.
-  run_trajectory_with_logging(executor, 2.2, NUM_SAMPLES);
+  run_trajectory_with_logging( 2.2, NUM_SAMPLES);
   print_sampled_trajectory();
   print_log_footer();
 
   // POPRAWKA: Interpolacja liniowa od 0 do 10 w czasie 2s.
   // W czasie 1.1s wartość powinna wynosić: 10 * (1.1 / 2.0) = 5.5
   EXPECT_NEAR(5.5, logged_data_[NUM_SAMPLES/2].command_efforts[0], 0.1);
+
+  executor.cancel();
+}
+//=============================================================================
+// TEST 10: Dynamic Wave Trajectory (Position, Velocity, Effort)
+// Matches the Gazebo 12-joint Dynamic Wave command
+//=============================================================================
+TEST_F(TrajectoryInterpolationTest, dynamic_wave_trajectory)
+{
+  command_interface_types_ = {"position", "velocity", "effort"};
+  test_config_name_ = "DYNAMIC_WAVE";
+  interpolation_method_ = "splines";
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  std::vector<rclcpp::Parameter> params;
+  params.emplace_back("open_loop_control", true);
+
+  SetUpAndActivateTrajectoryController(executor, params);
+
+  // Czasy odpowiadające komendzie z konsoli (0s, 2s, 4s, 6s)
+  input_times_ = {0.0, 2.0, 4.0, 6.0};
+
+  // Pozycje przełożone z 12 stawów na 3 (np. Trunk, Hip, Knee)
+  input_positions_ = {
+    { 0.0,  0.0,  0.0},
+    { 0.5, -0.8,  1.5},
+    {-0.5,  0.8, -1.5},
+    { 0.0,  0.0,  0.0}
+  };
+
+  // Precyzyjne zadanie prędkości w węzłach (zgodnie z komendą)
+  input_velocities_ = {
+    { 0.0,  0.0,  0.0},
+    { 0.2, -0.4,  0.8},
+    {-0.2,  0.4, -0.8},
+    { 0.0,  0.0,  0.0}
+  };
+
+  // Zadane efforty w węzłach (zgodnie z komendą)
+  input_efforts_ = {
+    { 0.0,  0.0,  0.0},
+    { 2.0, -4.0,  6.0},
+    {-2.0,  4.0, -6.0},
+    { 0.0,  0.0,  0.0}
+  };
+
+  trajectory_msgs::msg::JointTrajectory traj_msg;
+  // W środowisku testowym używamy domyślnego mocka 3-stawowego (nie nadpisujemy nazw)
+  traj_msg.joint_names = joint_names_;
+  traj_msg.header.stamp = rclcpp::Time(0, 0);
+
+  for (size_t i = 0; i < input_positions_.size(); ++i)
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions = input_positions_[i];
+    point.velocities = input_velocities_[i];
+    point.effort = input_efforts_[i];
+    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+    traj_msg.points.push_back(point);
+  }
+
+  trajectory_publisher_->publish(traj_msg);
+  traj_controller_->wait_for_trajectory(executor);
+
+  print_log_header();
+  print_input_trajectory();
+
+  // Symulacja trwa 6 sekund. Pobieramy logi przez 6.5 sekundy (130 próbek daje próbkowanie co 0.05s).
+  run_trajectory_with_logging(6.5, 130);
+  print_sampled_trajectory();
+  print_log_footer();
+
+  // Po 6.5s (czyli w stanie spoczynku po trajektorii) stawy powinny wrócić do punktu zero z t=6s
+  EXPECT_NEAR(0.0, logged_data_.back().command_positions[0], EPS);
+  EXPECT_NEAR(0.0, logged_data_.back().command_positions[1], EPS);
+  EXPECT_NEAR(0.0, logged_data_.back().command_positions[2], EPS);
 
   executor.cancel();
 }
