@@ -51,7 +51,7 @@ Polynomial splines are used to compute smooth intermediate state based on bounda
 
 
 
-**Linear Interpolation**
+**Position Linear Interpolation**
 
 Used when only positions are provided in the trajectory message. It computes intermediate positions linearly and provides a constant velocity:
 
@@ -62,7 +62,7 @@ $\boldsymbol{v}(t) = \boldsymbol{a}_1$
 ![Linear Interpolation](debugScripts/ave_LINEAR_INTERPOLATION_joint0.png)
 
 
-**Cubic Spline Interpolation**
+**Position Cubic Spline Interpolation**
 
 Used specifically when *both positions and velocities* are provided in the trajectory message. A third-degree polynomial ensures smooth position and continuous velocity between trajectory waypoints:
 
@@ -72,13 +72,18 @@ $\boldsymbol{v}(t) = \boldsymbol{a}_1 + 2 \boldsymbol{a}_2 t + 3 \boldsymbol{a}_
 
 ![Cubic Spline Interpolation](debugScripts/ave_DYNAMIC_WAVE_joint0.png)
 
+**Effort Linear Interpolation**
+
+Used when effort is provided in trajectory message. It computes intermediate effort linearly:
+
+$\boldsymbol{\tau}(t) = \boldsymbol{a}_0 + \boldsymbol{a}_1 t$
+
 
 *Where:*
 
-- $\boldsymbol{p}(t)$ and $\boldsymbol{v}(t)$ are position and velocity at time $t$.
+- $\boldsymbol{p}(t)$, $\boldsymbol{v}(t)$ and $\boldsymbol{\tau}(t)$ are position, velocity and effort at time $t$.
 
 - $\boldsymbol{a}_n$ are the polynomial coefficients derived from the start and end points of the trajectory segment.
-
 
 
 ## ROS 2 version
