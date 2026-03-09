@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>joint_trajectory_controller</name>
+  <name>joint_forward_trajectory_controller</name>
   <version>2.51.0</version>
   <description>Controller for executing joint-space trajectories on a group of joints</description>
 

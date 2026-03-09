@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef JOINT_TRAJECTORY_CONTROLLER__INTERPOLATION_METHODS_HPP_
-#define JOINT_TRAJECTORY_CONTROLLER__INTERPOLATION_METHODS_HPP_
+#ifndef JOINT_FORWARD_TRAJECTORY_CONTROLLER__INTERPOLATION_METHODS_HPP_
+#define JOINT_FORWARD_TRAJECTORY_CONTROLLER__INTERPOLATION_METHODS_HPP_
 
 #include <string>
 #include <unordered_map>
 
 #include "rclcpp/rclcpp.hpp"
 
-namespace joint_trajectory_controller
+namespace joint_forward_trajectory_controller
 {
 static const rclcpp::Logger LOGGER =
-  rclcpp::get_logger("joint_trajectory_controller.interpolation_methods");
+  rclcpp::get_logger("joint_forward_trajectory_controller.interpolation_methods");
 
 namespace interpolation_methods
 {
@@ -60,6 +60,6 @@ const std::unordered_map<InterpolationMethod, std::string> InterpolationMethodMa
   }
 }
 }  // namespace interpolation_methods
-}  // namespace joint_trajectory_controller
+}  // namespace joint_forward_trajectory_controller
 
-#endif  // JOINT_TRAJECTORY_CONTROLLER__INTERPOLATION_METHODS_HPP_
+#endif  // JOINT_FORWARD_TRAJECTORY_CONTROLLER__INTERPOLATION_METHODS_HPP_
