@@ -28,6 +28,7 @@ Command interfaces provided by the hardware interface can include `position`, `v
 
 - Working independently via topic subscriber using `trajectory_msgs/msg/JointTrajectory`
 
+- Querying state via `control_msgs/srv/QueryTrajectoryState` (**Note:** currently it returns only `position` and `velocity`)
 
 
 ## Interpolation methods
@@ -58,6 +59,7 @@ $\boldsymbol{p}(t) = \boldsymbol{a}_0 + \boldsymbol{a}_1 t$
 
 $\boldsymbol{v}(t) = \boldsymbol{a}_1$
 
+![Linear Interpolation](debugScripts/ave_LINEAR_INTERPOLATION_joint0.png)
 
 
 **Cubic Spline Interpolation**
@@ -68,6 +70,7 @@ $\boldsymbol{p}(t) = \boldsymbol{a}_0 + \boldsymbol{a}_1 t + \boldsymbol{a}_2 t^
 
 $\boldsymbol{v}(t) = \boldsymbol{a}_1 + 2 \boldsymbol{a}_2 t + 3 \boldsymbol{a}_3 t^2$
 
+![Cubic Spline Interpolation](debugScripts/ave_DYNAMIC_WAVE_joint0.png)
 
 
 *Where:*
@@ -193,3 +196,22 @@ joint_forward_trajectory_controller:
 
 
 #### `cmd_timeout` - timeout after which the input command is considered stale. Timeout is counted from the end of the trajectory. If `0` , timeout is deactivated.
+
+## Trajectory Visualization (Debug Scripts)
+
+To help you understand and verify how the controller interpolates trajectories you can use the visualization tools provided in the `debugScripts` directory.
+
+### How to generate logs and run `trajectoryVisualizer.py`:
+
+1. Make sure you have the necessary Python plotting libraries installed.
+2. Build package and run the `test_forward_trajectory` test using `colcon`. This will automatically generate log files containing the trajectory data:
+
+```bash
+colcon test --packages-select joint_forward_trajectory_controller --ctest-args -R "test_forward_trajectory"
+```
+3. Run the visualizer script using the generated log file (typically located in the `log` directory).
+
+**Usage examples:**
+```bash
+    python3 debugScripts/trajectoryVisualizer.py -save ../../log/latest_test/joint_forward_trajectory_controller/stdout.log
+```

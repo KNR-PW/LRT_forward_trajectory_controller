@@ -286,7 +286,7 @@ void JointForwardTrajectoryController::query_state_service(
   }
   response->position = state_requested.positions;
   response->velocity = state_requested.velocities;
-  // response->effort = state_requested.effort;
+  // response->acceleration = state_requested.effort;
 }
 
 controller_interface::CallbackReturn JointForwardTrajectoryController::on_configure(
