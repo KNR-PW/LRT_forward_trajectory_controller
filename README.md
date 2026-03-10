@@ -124,11 +124,11 @@ rosdep install --ignore-src --from-paths . -y -r
 
 ```
 
-3. Build
+3. Build (in `Release` mode)
 
 ```bash
 
-colcon build --packages-select joint_forward_trajectory_controller
+colcon build --packages-select joint_forward_trajectory_controller --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 ```
 
