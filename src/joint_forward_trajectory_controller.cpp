@@ -748,8 +748,6 @@ void JointForwardTrajectoryController::sort_to_local_joint_order(
     trajectory_msg->points[index].effort =
       remap(trajectory_msg->points[index].effort, mapping_vector);
 
-    trajectory_msg->points[index].effort =
-      remap(trajectory_msg->points[index].effort, mapping_vector);
   }
 }
 
