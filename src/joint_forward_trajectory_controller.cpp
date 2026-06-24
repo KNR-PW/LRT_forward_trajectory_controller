@@ -472,8 +472,8 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_activa
   resize_joint_forward_trajectory_point_command(last_commanded_state_, dof_);
 
   // The controller should start by holding position at the beginning of active state
-  add_new_trajectory_msg(set_hold_position());
-  rt_is_holding_ = true;
+  // add_new_trajectory_msg(set_hold_position());
+  // rt_is_holding_ = true;
 
   // parse timeout parameter
   if (params_.cmd_timeout > 0.0)
