@@ -98,7 +98,8 @@ protected:
     hardware_interface::HW_IF_EFFORT,
   };
 
-  // Preallocate variables used in the realtime update() function
+  // Preallocate variables used in the realtime update() functional
+  trajectory_msgs::msg::JointTrajectoryPoint state_current_;
   trajectory_msgs::msg::JointTrajectoryPoint state_desired_;
 
   // Degrees of freedom
@@ -109,6 +110,7 @@ protected:
   Params params_;
 
   trajectory_msgs::msg::JointTrajectoryPoint last_commanded_state_;
+  rclcpp::Time last_commanded_time_;
   /// Specify interpolation method. Default to splines.
   interpolation_methods::InterpolationMethod interpolation_method_{
     interpolation_methods::DEFAULT_INTERPOLATION};
@@ -120,10 +122,15 @@ protected:
   using InterfaceReferences = std::vector<std::vector<std::reference_wrapper<T>>>;
 
   InterfaceReferences<hardware_interface::LoanedCommandInterface> joint_command_interface_;
+  InterfaceReferences<hardware_interface::LoanedStateInterface> joint_state_interface_;
 
   bool has_position_command_interface_ = false;
   bool has_velocity_command_interface_ = false;
   bool has_effort_command_interface_ = false;
+
+  bool has_position_state_interface_ = false;
+  bool has_velocity_state_interface_ = false;
+  bool has_effort_state_interface_ = false;
 
 
   // Timeout to consider commands old
@@ -211,6 +218,9 @@ protected:
 
   using JointTrajectoryPoint = trajectory_msgs::msg::JointTrajectoryPoint;
 
+
+  void read_state_from_state_interfaces(JointTrajectoryPoint & state);
+
   void query_state_service(
     const std::shared_ptr<control_msgs::srv::QueryTrajectoryState::Request> request,
     std::shared_ptr<control_msgs::srv::QueryTrajectoryState::Response> response);
@@ -223,6 +233,11 @@ private:
   void init_hold_position_msg();
   void resize_joint_forward_trajectory_point_command(
     trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size);
+
+  void assign_point_from_command_interface(
+    std::vector<double> & trajectory_point_interface,
+    const std::vector<std::reference_wrapper<hardware_interface::LoanedCommandInterface>> &
+      joint_interface);
 };
 
 }  // namespace joint_forward_trajectory_controller

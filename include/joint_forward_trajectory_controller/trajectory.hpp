@@ -38,6 +38,12 @@ public:
   JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   explicit Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory);
 
+  JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
+  explicit Trajectory(
+    const rclcpp::Time & current_time,
+    const trajectory_msgs::msg::JointTrajectoryPoint & current_point,
+    std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory);
+
   /**
    *  Set the point before the trajectory message is replaced/appended
    * Example: if we receive a new trajectory message and it's first point is 0.5 seconds
@@ -46,6 +52,9 @@ public:
    * \param joints_angle_wraparound Vector of boolean where true value corresponds to a joint that
    * wrap around (ie. is continuous).
    */
+  void set_point_before_trajectory_msg(
+    const rclcpp::Time & current_time,
+    const trajectory_msgs::msg::JointTrajectoryPoint & current_point);
 
   JOINT_FORWARD_TRAJECTORY_CONTROLLER_PUBLIC
   void update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory);
@@ -158,6 +167,9 @@ private:
 
   std::shared_ptr<trajectory_msgs::msg::JointTrajectory> trajectory_msg_;
   rclcpp::Time trajectory_start_time_;
+
+  rclcpp::Time time_before_traj_msg_;
+  trajectory_msgs::msg::JointTrajectoryPoint state_before_traj_msg_;
 
   bool sampled_already_ = false;
   size_t last_sample_idx_ = 0;

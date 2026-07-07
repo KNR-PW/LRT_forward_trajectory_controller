@@ -202,6 +202,10 @@ joint_forward_trajectory_controller:
 
 #### `cmd_timeout` - timeout after which the input command is considered stale. Timeout is counted from the end of the trajectory. If `0` , timeout is deactivated.
 
+
+
+#### `interpolate_from_desired_state` - the controller ignores the states provided by hardware interface but using last commands as states for starting the trajectory interpolation.
+
 ## Trajectory Visualization (Debug Scripts)
 
 To help you understand and verify how the controller interpolates trajectories you can use the visualization tools provided in the `debugScripts` directory.

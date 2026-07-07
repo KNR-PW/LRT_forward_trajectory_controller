@@ -101,9 +101,25 @@ JointForwardTrajectoryController::command_interface_configuration() const
 controller_interface::InterfaceConfiguration
 JointForwardTrajectoryController::state_interface_configuration() const
 {
-	controller_interface::InterfaceConfiguration conf;
-	conf.type = controller_interface::interface_configuration_type::NONE;
-	return conf;
+  controller_interface::InterfaceConfiguration conf;
+  conf.type = controller_interface::interface_configuration_type::INDIVIDUAL;
+  conf.names.reserve(dof_ * params_.state_interfaces.size());
+  
+  for (const auto & joint_name : params_.joints)
+  {
+    // Odcięcie "joint_controller/"
+    std::string actual_joint_name = joint_name;
+    size_t pos = actual_joint_name.find_last_of('/');
+    if (pos != std::string::npos) {
+      actual_joint_name = actual_joint_name.substr(pos + 1);
+    }
+    
+    for (const auto & interface_type : params_.state_interfaces)
+    {
+      conf.names.push_back(actual_joint_name + "/" + interface_type);
+    }
+  }
+  return conf;
 }
 
 
@@ -115,6 +131,9 @@ controller_interface::return_type JointForwardTrajectoryController::update(
     return controller_interface::return_type::OK;
   }
   auto logger = this->get_node()->get_logger();
+
+  read_state_from_state_interfaces(state_current_);
+
   // update dynamic parameters
   if (param_listener_->is_old(params_))
   {
@@ -147,7 +166,9 @@ controller_interface::return_type JointForwardTrajectoryController::update(
     }
   };
 
-
+  state_current_.time_from_start.sec = 0;
+  state_current_.time_from_start.nanosec = 0;
+  read_state_from_state_interfaces(state_current_);
   // currently carrying out a trajectory
   if (has_active_trajectory())
   {
@@ -156,6 +177,17 @@ controller_interface::return_type JointForwardTrajectoryController::update(
     if (!traj_external_point_ptr_->is_sampled_already())
     {
       first_sample = true;
+	  if(params_.interpolate_from_desired_state)
+	  {
+        if (std::abs(last_commanded_time_.seconds()) < std::numeric_limits<float>::epsilon())
+        {
+          last_commanded_time_ = time;
+        }
+       traj_external_point_ptr_->set_point_before_trajectory_msg(
+          last_commanded_time_, last_commanded_state_);
+	  }else{
+		  traj_external_point_ptr_->set_point_before_trajectory_msg(time,state_current_);
+	  }
     }
 
     // find segment for current timestamp
@@ -207,6 +239,7 @@ controller_interface::return_type JointForwardTrajectoryController::update(
 
 	// store the previous command. Used in open-loop control mode
 	  last_commanded_state_ = state_desired_;
+	  last_commanded_time_ = time;
 
 	  
       if (active_goal)
@@ -241,6 +274,44 @@ controller_interface::return_type JointForwardTrajectoryController::update(
   }
 
   return controller_interface::return_type::OK;
+}
+
+void JointForwardTrajectoryController::read_state_from_state_interfaces(JointTrajectoryPoint & state)
+{
+  auto logger = get_node()->get_logger();
+  auto assign_point_from_state_interface =
+    [&](std::vector<double> & trajectory_point_interface, const auto & joint_interface)
+  {
+    for (size_t index = 0; index < dof_; ++index)
+    {
+	  trajectory_point_interface[index] =joint_interface[index].get().get_value();
+    }
+  };
+
+  // Assign values from the hardware
+  if(has_position_state_interface_)
+  {
+	  assign_point_from_state_interface(state.positions, joint_state_interface_[0]);
+  }
+  else 
+  {
+	  state.positions.clear();
+  }
+  // velocity and acceleration states are optional
+  if (has_velocity_state_interface_)
+  {
+    assign_point_from_state_interface(state.velocities, joint_state_interface_[1]);
+  }
+  else
+  {
+    // Make empty so the property is ignored during interpolation
+    state.velocities.clear();
+  }
+  // No state interface for now, use command interface
+  if (has_effort_command_interface_)
+  {
+    assign_point_from_command_interface(state.effort, joint_command_interface_[2]);
+  }
 }
 
 void JointForwardTrajectoryController::query_state_service(
@@ -326,13 +397,18 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_config
     RCLCPP_ERROR(logger, "'command_interfaces' parameter is empty.");
     return CallbackReturn::FAILURE;
   }
-
   // Check if only allowed interface types are used and initialize storage to avoid memory
   // allocation during activation
   joint_command_interface_.resize(allowed_interface_types_.size());
   for (auto & itf : joint_command_interface_)
   {
     itf.reserve(params_.joints.size());
+  }
+
+  joint_state_interface_.resize(allowed_interface_types_.size());
+  for(auto & itf : joint_state_interface_)
+  {
+	  itf.reserve(params_.joints.size());
   }
 
   has_position_command_interface_ =
@@ -342,7 +418,12 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_config
   has_effort_command_interface_ =
     contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_EFFORT);
 
-
+has_position_state_interface_ =
+    contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_POSITION);
+  has_velocity_state_interface_ =
+    contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_VELOCITY);
+  has_effort_state_interface_ =
+    contains_interface_type(params_.command_interfaces, hardware_interface::HW_IF_EFFORT);
 
   // Validation of combinations of state and velocity together have to be done
   // here because the parameter validators only deal with each parameter
@@ -427,6 +508,7 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_config
 
   resize_joint_forward_trajectory_point_command(state_desired_, dof_);
   resize_joint_forward_trajectory_point_command(last_commanded_state_, dof_);
+  resize_joint_forward_trajectory_point_command(state_current_, dof_);
 
   query_state_srv_ = get_node()->create_service<control_msgs::srv::QueryTrajectoryState>(
     std::string(get_node()->get_name()) + "/query_state",
@@ -446,7 +528,6 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_activa
   // get parameters from the listener in case they were updated
   params_ = param_listener_->get_params();
 
-
   // order all joints in the storage
   for (const auto & interface : params_.command_interfaces)
   {
@@ -462,6 +543,32 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_activa
       return CallbackReturn::ERROR;
     }
   }
+std::vector<std::string> hardware_joint_names;
+  for (const auto & joint_name : params_.joints)
+  {
+    std::string actual_joint_name = joint_name;
+    size_t pos = actual_joint_name.find_last_of('/');
+    if (pos != std::string::npos) {
+      actual_joint_name = actual_joint_name.substr(pos + 1);
+    }
+    hardware_joint_names.push_back(actual_joint_name);
+  }
+
+  // 2. Mapowanie odczytów sprzętowych (z użyciem czystych nazw i TYLKO params_.state_interfaces)
+  for (const auto & interface : params_.state_interfaces)
+  {
+    auto it = std::find(allowed_interface_types_.begin(), allowed_interface_types_.end(), interface);
+    auto index = static_cast<size_t>(std::distance(allowed_interface_types_.begin(), it));
+    
+    if (!controller_interface::get_ordered_interfaces(
+          state_interfaces_, hardware_joint_names, interface, joint_state_interface_[index]))
+    {
+      RCLCPP_ERROR(logger, "Expected %zu '%s' state interfaces, got %zu.", 
+                   dof_, interface.c_str(), joint_state_interface_[index].size());
+      return CallbackReturn::ERROR;
+    }
+  }
+  
 
   traj_external_point_ptr_ = std::make_shared<Trajectory>();
   traj_msg_external_point_ptr_.writeFromNonRT(
@@ -469,8 +576,11 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_activa
 
   subscriber_is_active_ = true;
 
+
   resize_joint_forward_trajectory_point_command(last_commanded_state_, dof_);
 
+  read_state_from_state_interfaces(state_current_);
+  read_state_from_state_interfaces(last_commanded_state_);
   // The controller should start by holding position at the beginning of active state
   // add_new_trajectory_msg(set_hold_position());
   // rt_is_holding_ = true;
@@ -990,6 +1100,23 @@ void JointForwardTrajectoryController::init_hold_position_msg()
   }
 }
 
+void JointForwardTrajectoryController::assign_point_from_command_interface(
+  std::vector<double> & trajectory_point_interface,
+  const std::vector<std::reference_wrapper<hardware_interface::LoanedCommandInterface>> &
+    joint_interface)
+{
+  // Wypełnienie wektora wartościami NaN
+  std::fill(
+    trajectory_point_interface.begin(), trajectory_point_interface.end(),
+    std::numeric_limits<double>::quiet_NaN());
+
+  // W domyślnym JointTrajectoryController (Humble) iterujemy bezpośrednio po dof_, 
+  // ponieważ mapowanie między stawami a interfejsami sprzętowymi jest 1:1.
+  for (size_t index = 0; index < dof_; ++index)
+  {
+    trajectory_point_interface[index] = joint_interface[index].get().get_value();
+  }
+}
 }  // namespace joint_forward_trajectory_controller
 
 #include "pluginlib/class_list_macros.hpp"

@@ -19,10 +19,36 @@ joint_forward_trajectory_controller:
       "joint_forward_trajectory_controller::command_interface_type_combinations": null,
     }
   }
+  state_interfaces: {
+    type: string_array,
+    default_value: [],
+    description: "State interfaces provided by the hardware for all joints.",
+    read_only: true,
+    validation: {
+      unique<>: null,
+      subset_of<>: [["position", "velocity"]],
+      "joint_forward_trajectory_controller::state_interface_type_combinations": null,
+    }
+  }
   allow_partial_joints_goal: {
     type: bool,
     default_value: false,
     description: "Allow joint goals defining trajectory for only some joints.",
+  }
+  interpolate_from_desired_state: {
+    type: bool,
+    default_value: false,
+    description: "Interpolate from the current desired state when receiving a new trajectory.
+      \n\n
+      The controller ignores the states provided by hardware interface but using last commands as states for starting the trajectory interpolation.
+      \n\n
+      This is useful if hardware states are not following commands, i.e., an offset between those (typical for hydraulic manipulators).
+      Furthermore, it is necessary if you have a reference trajectory that you send over multiple messages (e.g. for MPC-style trajectory planning).
+      \n\n
+      If this flag is set, the controller tries to read the values from the command interfaces on activation.
+      If they have real numeric values, those will be used instead of state interfaces.
+      Therefore it is important set command interfaces to NaN (i.e., ``std::numeric_limits<double>::quiet_NaN()``) or state values when the hardware is started.\n",
+    read_only: true,
   }
   allow_integration_in_goal_trajectories: {
     type: bool,

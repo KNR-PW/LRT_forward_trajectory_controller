@@ -54,6 +54,25 @@ tl::expected<void, std::string> command_interface_type_combinations(
   return {};
 }
 
+tl::expected<void, std::string> state_interface_type_combinations(
+  rclcpp::Parameter const & parameter)
+{
+  auto const & interface_types = parameter.as_string_array();
+
+  // Valid combinations are
+  // 1. position [velocity, [acceleration]]
+
+  if (
+    rsl::contains<std::vector<std::string>>(interface_types, "velocity") &&
+    !rsl::contains<std::vector<std::string>>(interface_types, "position"))
+  {
+    return tl::make_unexpected(
+      "'velocity' state interface cannot be used if 'position' interface "
+      "is missing.");
+  }
+
+  return {};
+}
 
 }  // namespace joint_forward_trajectory_controller
 

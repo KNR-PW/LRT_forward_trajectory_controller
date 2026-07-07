@@ -32,7 +32,38 @@ Trajectory::Trajectory(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> jo
 {
 }
 
+Trajectory::Trajectory(
+  const rclcpp::Time & current_time,
+  const trajectory_msgs::msg::JointTrajectoryPoint & current_point,
+  std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_trajectory)
+: trajectory_msg_(joint_trajectory),
+  trajectory_start_time_(static_cast<rclcpp::Time>(joint_trajectory->header.stamp))
+{
+  set_point_before_trajectory_msg(current_time, current_point);
+  update(joint_trajectory);
+}
 
+void Trajectory::set_point_before_trajectory_msg(
+  const rclcpp::Time & current_time,
+  const trajectory_msgs::msg::JointTrajectoryPoint & current_point)
+{
+  time_before_traj_msg_ = current_time;
+  state_before_traj_msg_ = current_point;
+
+  // If the current state doesn't contain velocities / accelerations, but the first trajectory
+  // point does, initialize them to zero. Otherwise the segment going from the current state to the
+  // first trajectory point will use another degree of spline interpolation than the rest of the
+  // trajectory.
+  if (current_point.velocities.empty() && !trajectory_msg_->points[0].velocities.empty())
+  {
+    state_before_traj_msg_.velocities.resize(trajectory_msg_->points[0].velocities.size(), 0.0);
+  }
+  if (current_point.effort.empty() && !trajectory_msg_->points[0].effort.empty())
+  {
+    state_before_traj_msg_.effort.resize(
+      trajectory_msg_->points[0].effort.size(), 0.0);
+  }
+}
 void Trajectory::update(std::shared_ptr<trajectory_msgs::msg::JointTrajectory> joint_forward_trajectory)
 {
   trajectory_msg_ = joint_forward_trajectory;
@@ -75,10 +106,20 @@ bool Trajectory::sample(
   // current time hasn't reached traj time of the first point in the msg yet
   if (sample_time < first_point_timestamp)
   {
-      output_state = first_point_in_msg;
+	  if (interpolation_method == interpolation_methods::InterpolationMethod::NONE)
+	  {
+		  output_state = state_before_traj_msg_;
+	  }else{
+		  deduce_from_derivatives(
+			state_before_traj_msg_, first_point_in_msg, state_before_traj_msg_.positions.size(),
+			(first_point_timestamp - time_before_traj_msg_).seconds());
 
-		start_segment_itr = begin();  // no segments before the first
-		end_segment_itr = begin();
+		  interpolate_between_points(
+			time_before_traj_msg_, state_before_traj_msg_, first_point_timestamp, first_point_in_msg,
+			sample_time, output_state);
+	  }
+	  start_segment_itr = begin();
+	  end_segment_itr = begin();
 		return true;
   }
 
