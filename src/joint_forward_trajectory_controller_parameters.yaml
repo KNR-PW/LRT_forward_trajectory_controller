@@ -21,7 +21,7 @@ joint_forward_trajectory_controller:
   }
   state_interfaces: {
     type: string_array,
-    default_value: [],
+    default_value: ["position", "velocity"],
     description: "State interfaces provided by the hardware for all joints.",
     read_only: true,
     validation: {
