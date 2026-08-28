@@ -54,6 +54,16 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_init()
 
     // Set interpolation method from string parameter
     interpolation_method_ = interpolation_methods::from_string(params_.interpolation_method);
+    
+    joint_names_.reserve(params_.joints.size());
+    for (const auto & joint_name : params_.joints) {
+      std::string actual_joint_name = joint_name;
+      size_t pos = actual_joint_name.find_last_of('/');
+      if (pos != std::string::npos) {
+        actual_joint_name = actual_joint_name.substr(pos + 1);
+      }
+      joint_names_.push_back(actual_joint_name);
+    }
   }
   catch (const std::exception & e)
   {
@@ -105,18 +115,11 @@ JointForwardTrajectoryController::state_interface_configuration() const
   conf.type = controller_interface::interface_configuration_type::INDIVIDUAL;
   conf.names.reserve(dof_ * params_.state_interfaces.size());
   
-  for (const auto & joint_name : params_.joints)
+  for (const auto & joint_name : joint_names_)
   {
-    // Odcięcie "joint_controller/"
-    std::string actual_joint_name = joint_name;
-    size_t pos = actual_joint_name.find_last_of('/');
-    if (pos != std::string::npos) {
-      actual_joint_name = actual_joint_name.substr(pos + 1);
-    }
-    
     for (const auto & interface_type : params_.state_interfaces)
     {
-      conf.names.push_back(actual_joint_name + "/" + interface_type);
+      conf.names.push_back(joint_name + "/" + interface_type);
     }
   }
   return conf;
@@ -247,7 +250,7 @@ controller_interface::return_type JointForwardTrajectoryController::update(
         // send feedback
         auto feedback = std::make_shared<FollowJTrajAction::Feedback>();
         feedback->header.stamp = time;
-        feedback->joint_names = params_.joints;
+        feedback->joint_names = joint_names_;
 
         feedback->actual = state_desired_;
         feedback->desired = state_desired_;
@@ -327,7 +330,7 @@ void JointForwardTrajectoryController::query_state_service(
     return;
   }
   const auto active_goal = *rt_active_goal_.readFromRT();
-  response->name = params_.joints;
+  response->name = joint_names_;
   trajectory_msgs::msg::JointTrajectoryPoint state_requested = last_commanded_state_;
   if (has_active_trajectory())
   {
@@ -543,16 +546,6 @@ controller_interface::CallbackReturn JointForwardTrajectoryController::on_activa
       return CallbackReturn::ERROR;
     }
   }
-std::vector<std::string> hardware_joint_names;
-  for (const auto & joint_name : params_.joints)
-  {
-    std::string actual_joint_name = joint_name;
-    size_t pos = actual_joint_name.find_last_of('/');
-    if (pos != std::string::npos) {
-      actual_joint_name = actual_joint_name.substr(pos + 1);
-    }
-    hardware_joint_names.push_back(actual_joint_name);
-  }
 
   // 2. Mapowanie odczytów sprzętowych (z użyciem czystych nazw i TYLKO params_.state_interfaces)
   for (const auto & interface : params_.state_interfaces)
@@ -561,14 +554,13 @@ std::vector<std::string> hardware_joint_names;
     auto index = static_cast<size_t>(std::distance(allowed_interface_types_.begin(), it));
     
     if (!controller_interface::get_ordered_interfaces(
-          state_interfaces_, hardware_joint_names, interface, joint_state_interface_[index]))
+          state_interfaces_, joint_names_, interface, joint_state_interface_[index]))
     {
       RCLCPP_ERROR(logger, "Expected %zu '%s' state interfaces, got %zu.", 
                    dof_, interface.c_str(), joint_state_interface_[index].size());
       return CallbackReturn::ERROR;
     }
   }
-  
 
   traj_external_point_ptr_ = std::make_shared<Trajectory>();
   traj_msg_external_point_ptr_.writeFromNonRT(
@@ -750,7 +742,7 @@ void JointForwardTrajectoryController::goal_accepted_callback(
 
   // Update the active goal
   RealtimeGoalHandlePtr rt_goal = std::make_shared<RealtimeGoalHandle>(goal_handle);
-  rt_goal->preallocated_feedback_->joint_names = params_.joints;
+  rt_goal->preallocated_feedback_->joint_names = joint_names_;
   rt_goal->execute();
   rt_active_goal_.writeFromNonRT(rt_goal);
 
@@ -781,12 +773,12 @@ void JointForwardTrajectoryController::fill_partial_goal(
       if (
         std::find(
           trajectory_msg->joint_names.begin(), trajectory_msg->joint_names.end(),
-          params_.joints[index]) != trajectory_msg->joint_names.end())
+          joint_names_[index]) != trajectory_msg->joint_names.end())
       {
         // joint found on msg
         continue;
       }
-      trajectory_msg->joint_names.push_back(params_.joints[index]);
+      trajectory_msg->joint_names.push_back(joint_names_[index]);
 
       for (auto & it : trajectory_msg->points)
       {
@@ -818,7 +810,7 @@ void JointForwardTrajectoryController::sort_to_local_joint_order(
   std::shared_ptr<trajectory_msgs::msg::JointTrajectory> trajectory_msg)
 {
   // rearrange all points in the trajectory message based on mapping
-  std::vector<size_t> mapping_vector = mapping(trajectory_msg->joint_names, params_.joints);
+  std::vector<size_t> mapping_vector = mapping(trajectory_msg->joint_names, joint_names_);
   auto remap = [this](
                  const std::vector<double> & to_remap,
                  const std::vector<size_t> & mapping) -> std::vector<double>
@@ -929,8 +921,8 @@ bool JointForwardTrajectoryController::validate_trajectory_msg(
   {
     const std::string & incoming_joint_name = trajectory.joint_names[i];
 
-    auto it = std::find(params_.joints.begin(), params_.joints.end(), incoming_joint_name);
-    if (it == params_.joints.end())
+    auto it = std::find(joint_names_.begin(), joint_names_.end(), incoming_joint_name);
+    if (it == joint_names_.end())
     {
       RCLCPP_ERROR(
         get_node()->get_logger(), "Incoming joint %s doesn't match the controller's joints.",
@@ -1086,7 +1078,7 @@ void JointForwardTrajectoryController::init_hold_position_msg()
   hold_position_msg_ptr_ = std::make_shared<trajectory_msgs::msg::JointTrajectory>();
   hold_position_msg_ptr_->header.stamp =
     rclcpp::Time(0.0, 0.0, get_node()->get_clock()->get_clock_type());  // start immediately
-  hold_position_msg_ptr_->joint_names = params_.joints;
+  hold_position_msg_ptr_->joint_names = joint_names_;
   hold_position_msg_ptr_->points.resize(1);  // a trivial msg only
   hold_position_msg_ptr_->points[0].velocities.clear();
   hold_position_msg_ptr_->points[0].effort.clear();

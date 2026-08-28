@@ -109,6 +109,9 @@ protected:
   std::shared_ptr<ParamListener> param_listener_;
   Params params_;
 
+  // True joint names, without any controller prefixes
+  std::vector<std::string> joint_names_;
+
   trajectory_msgs::msg::JointTrajectoryPoint last_commanded_state_;
   rclcpp::Time last_commanded_time_;
   /// Specify interpolation method. Default to splines.
