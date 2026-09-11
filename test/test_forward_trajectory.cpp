@@ -866,3 +866,77 @@ TEST_F(TrajectoryInterpolationTest, dynamic_wave_trajectory)
 
   executor.cancel();
 }
+//=============================================================================
+// TEST 11: Delayed first point (interpolation from current state)
+// Checks if the controller smoothly interpolates from the current state (0.0)
+// to the first trajectory point when it is shifted in time.
+//=============================================================================
+TEST_F(TrajectoryInterpolationTest, delayed_first_point_interpolation)
+{
+  command_interface_types_ = {"position", "velocity", "effort"};
+  test_config_name_ = "DELAYED_FIRST_POINT";
+  interpolation_method_ = "splines";
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  std::vector<rclcpp::Parameter> params;
+  params.emplace_back("open_loop_control", true);
+
+  SetUpAndActivateTrajectoryController(executor, params);
+
+  // Pierwszy punkt jest celowo przesunięty w czasie o 2 sekundy od startu.
+  // Drugi punkt (końcowy) jest w 4 sekundzie.
+  input_times_ = {2.0, 4.0};
+  input_positions_ = {
+    {1.0, 1.0, 1.0},
+    {-0.5, -0.5, -0.5}
+  };
+  input_velocities_ = {
+    {0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0}
+  };
+  input_efforts_ = {
+    {0.0, 0.0, 0.0},
+    {0.0, 0.0, 0.0}
+  };
+
+  trajectory_msgs::msg::JointTrajectory traj_msg;
+  traj_msg.joint_names = joint_names_;
+  traj_msg.header.stamp = rclcpp::Time(0, 0); // Start natychmiastowy po odebraniu
+
+  for (size_t i = 0; i < input_positions_.size(); ++i)
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint point;
+    point.positions = input_positions_[i];
+    point.velocities = input_velocities_[i];
+    point.effort = input_efforts_[i];
+    point.time_from_start = rclcpp::Duration::from_seconds(input_times_[i]);
+    traj_msg.points.push_back(point);
+  }
+
+  trajectory_publisher_->publish(traj_msg);
+  traj_controller_->wait_for_trajectory(executor);
+
+  print_log_header();
+  print_input_trajectory();
+  
+  // Trajektoria kończy się w 4.0s. 100 próbek da nam równe kroki (dt = 0.04s)
+  run_trajectory_with_logging(4.0, 100);
+  print_sampled_trajectory();
+  print_log_footer();
+
+  // Sprawdzenie poprawności interpolacji z punktu zerowego (aktualnego stanu)
+  
+  // 1. W połowie czasu do pierwszego punktu (t = 1.0s -> próbka 25)
+  // Splajn kubiczny z v0=0 i v1=0 przy przejściu z pozycji 0.0 do 1.0 w 2s da dokładnie wartość 0.5.
+  EXPECT_NEAR(0.5, logged_data_[25].command_positions[0], EPS);
+
+  // 2. W pierwszym przesuniętym punkcie trajektorii (t = 2.0s -> próbka 50)
+  // Robot powinien tu dokładnie osiągnąć zaplanowaną pozycję 1.0.
+  EXPECT_NEAR(1.0, logged_data_[50].command_positions[0], EPS);
+
+  // 3. W ostatnim punkcie trajektorii (t = 4.0s -> próbka 100)
+  // Oczekiwana docelowa pozycja to -0.5.
+  EXPECT_NEAR(-0.5, logged_data_[100].command_positions[0], EPS);
+
+  executor.cancel();
+}

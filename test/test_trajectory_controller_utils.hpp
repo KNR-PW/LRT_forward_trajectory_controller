@@ -144,6 +144,8 @@ public:
     joint_pos_.resize(joint_names_.size(), 0.0);
     joint_vel_.resize(joint_names_.size(), 0.0);
     joint_eff_.resize(joint_names_.size(), 0.0);
+    joint_state_pos_.resize(joint_names_.size(), 0.0);
+    joint_state_vel_.resize(joint_names_.size(), 0.0);
     // Default interface values - they will be overwritten by parameterized tests
     command_interface_types_ = {"position"};
 
@@ -242,9 +244,12 @@ public:
     const std::vector<double> initial_eff_joints = INITIAL_EFF_JOINTS)
   {
     std::vector<hardware_interface::LoanedCommandInterface> cmd_interfaces;
+    std::vector<hardware_interface::LoanedStateInterface> state_interfaces;
     pos_cmd_interfaces_.reserve(joint_names_.size());
     vel_cmd_interfaces_.reserve(joint_names_.size());
     eff_cmd_interfaces_.reserve(joint_names_.size());
+    pos_state_interfaces_.reserve(joint_names_.size());
+    vel_state_interfaces_.reserve(joint_names_.size());
     for (size_t i = 0; i < joint_names_.size(); ++i)
     {
       pos_cmd_interfaces_.emplace_back(
@@ -258,6 +263,13 @@ public:
           joint_names_[i], hardware_interface::HW_IF_EFFORT, &joint_eff_[i]));
 
 
+      pos_state_interfaces_.emplace_back(
+        hardware_interface::StateInterface(
+          joint_names_[i], hardware_interface::HW_IF_POSITION, &joint_state_pos_[i]));
+      vel_state_interfaces_.emplace_back(
+        hardware_interface::StateInterface(
+          joint_names_[i], hardware_interface::HW_IF_VELOCITY, &joint_state_vel_[i]));
+
       // Add to export lists and set initial values
       cmd_interfaces.emplace_back(pos_cmd_interfaces_.back());
       cmd_interfaces.back().set_value(initial_pos_joints[i]);
@@ -265,9 +277,12 @@ public:
       cmd_interfaces.back().set_value(initial_vel_joints[i]);
       cmd_interfaces.emplace_back(eff_cmd_interfaces_.back());
       cmd_interfaces.back().set_value(initial_eff_joints[i]);
+
+      state_interfaces.emplace_back(pos_state_interfaces_.back());
+      state_interfaces.emplace_back(vel_state_interfaces_.back());
     }
 
-    traj_controller_->assign_interfaces(std::move(cmd_interfaces),{});
+    traj_controller_->assign_interfaces(std::move(cmd_interfaces), std::move(state_interfaces));
     return traj_controller_->get_node()->activate();
   }
 
@@ -574,9 +589,13 @@ public:
   std::vector<double> joint_pos_;
   std::vector<double> joint_vel_;
   std::vector<double> joint_eff_;
+  std::vector<double> joint_state_pos_;
+  std::vector<double> joint_state_vel_;
   std::vector<hardware_interface::CommandInterface> pos_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> vel_cmd_interfaces_;
   std::vector<hardware_interface::CommandInterface> eff_cmd_interfaces_;
+  std::vector<hardware_interface::StateInterface> pos_state_interfaces_;
+  std::vector<hardware_interface::StateInterface> vel_state_interfaces_;
 };
 
 // From the tutorial: https://www.sandordargo.com/blog/2019/04/24/parameterized-testing-with-gtest
